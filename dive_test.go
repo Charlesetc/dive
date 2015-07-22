@@ -13,8 +13,15 @@ const (
 	numberOfNodes int = 10
 )
 
-func TestDive(t *testing.T) {
+func checkMembers(t *testing.T, nodes []*Node) {
+	for _, node := range nodes {
+		if len(node.Members) != len(nodes)-1 {
+			t.Errorf("Node %d thinks there are %d node(s)!", node.Id, len(node.Members))
+		}
+	}
+}
 
+func TestDive(t *testing.T) {
 	nodes := make([]*Node, numberOfNodes)
 
 	first := NewNode("", 0)
@@ -27,13 +34,8 @@ func TestDive(t *testing.T) {
 	}
 
 	fmt.Println("Waiting...")
-	time.Sleep(ping_interval * 10)
+	time.Sleep(PingInterval * 50)
 	fmt.Println("Done waiting.")
 
-	for _, node := range nodes {
-		if len(node.Members) != len(nodes)-1 {
-			t.Errorf("Node %d thinks there are %d node(s)!", node.Id, len(node.Members))
-		}
-	}
-
+	checkMembers(t, nodes)
 }

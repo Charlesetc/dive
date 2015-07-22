@@ -9,8 +9,22 @@ import (
 )
 
 const (
-	ping_interval time.Duration = time.Millisecond * 300
+	PingInterval time.Duration = time.Millisecond * 10
 )
+
+func randomMember(members map[string]bool) (member string) {
+	index := rand.Intn(len(members))
+	count := 0
+
+	for member = range members {
+		if count == index {
+			break
+		}
+		count++
+	}
+
+	return
+}
 
 type Node struct {
 	Members map[string]bool
@@ -24,32 +38,23 @@ func (n *Node) Address() string {
 
 func (n *Node) heartbeet() {
 	for {
-		if len(n.Members) == 0 {
-			time.Sleep(ping_interval)
-			continue
+		if len(n.Members) > 0 {
+			other := randomMember(n.Members)
+			n.Ping(other)
 		}
-		desired_value := rand.Intn(len(n.Members))
-		var other string
-		i := 0
-		for other = range n.Members {
-			if i == desired_value {
-				break
-			}
-			i++
-		}
-		n.Ping(other)
-		time.Sleep(ping_interval)
+
+		time.Sleep(PingInterval)
 	}
 }
 
-func NewNode(seed_address string, id int) *Node {
+func NewNode(seedAddress string, id int) *Node {
 	node := &Node{
 		Members: make(map[string]bool),
 		Joins:   make([]string, 0),
 		Id:      id,
 	}
-	if seed_address != "" {
-		node.Members[seed_address] = true
+	if seedAddress != "" {
+		node.Members[seedAddress] = true
 	}
 	go node.Serve()
 	go node.heartbeet()
