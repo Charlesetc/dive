@@ -6,11 +6,10 @@ import (
 	"fmt"
 	"testing"
 	"time"
-	// "time"
 )
 
 const (
-	numberOfNodes int = 10
+	ClusterSize int = 10
 )
 
 func checkMembers(t *testing.T, nodes []*Node) {
@@ -21,21 +20,26 @@ func checkMembers(t *testing.T, nodes []*Node) {
 	}
 }
 
-func TestDive(t *testing.T) {
-	nodes := make([]*Node, numberOfNodes)
+func NewCluster(size int) []*Node {
+	nodes := make([]*Node, ClusterSize)
 
 	first := NewNode("", 0)
 	nodes[0] = first
 
 	seed := first.Address()
 
-	for i := 1; i < numberOfNodes; i++ {
+	for i := 1; i < ClusterSize; i++ {
 		nodes[i] = NewNode(seed, i)
 	}
 
+	return nodes
+}
+
+func TestDive(t *testing.T) {
+	nodes := NewCluster(ClusterSize)
+
 	fmt.Println("Waiting...")
 	time.Sleep(PingInterval * 50)
-	fmt.Println("Done waiting.")
 
 	checkMembers(t, nodes)
 }

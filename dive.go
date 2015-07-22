@@ -62,5 +62,5 @@ func NewNode(seedAddress string, id int) *Node {
 }
 
 func init() {
-	rand.Seed(int64(time.Now().Nanosecond()))
+	rand.Seed(time.Now().UnixNano())
 }
