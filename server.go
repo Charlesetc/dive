@@ -3,7 +3,6 @@
 package dive
 
 import (
-	"fmt"
 	"net"
 	"net/rpc"
 	"os"
@@ -58,7 +57,6 @@ func (s *Server) Ping(o *Option, r *Reply) error {
 // Client
 
 func (n *Node) Ping(address string) bool {
-	fmt.Println("Hi")
 	conn, err := rpc.Dial("unix", address)
 	if err != nil {
 		panic(err)

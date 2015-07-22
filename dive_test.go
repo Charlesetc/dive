@@ -5,6 +5,7 @@ package dive
 import (
 	"fmt"
 	"testing"
+	"time"
 	// "time"
 )
 
@@ -26,13 +27,13 @@ func TestDive(t *testing.T) {
 	}
 
 	fmt.Println("Waiting...")
-	// time.Sleep(time.Millisecond)
+	time.Sleep(time.Second)
 	fmt.Println("Done waiting.")
 
-	// for _, node := range nodes {
-	// 	if len(node.Members) != len(nodes)-1 {
-	// 		t.Errorf("Node %d thinks there are %d nodes!", node.Id, len(node.Members))
-	// 	}
-	// }
+	for _, node := range nodes {
+		if len(node.Members) != len(nodes)-1 {
+			t.Errorf("Node %d thinks there are %d nodes!", node.Id, len(node.Members))
+		}
+	}
 
 }

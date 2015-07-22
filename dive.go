@@ -23,6 +23,10 @@ func (n *Node) Address() string {
 
 func (n *Node) heartbeet() {
 	for {
+		if len(n.Members) == 0 {
+			time.Sleep(ping_interval)
+			continue
+		}
 		desired_value := rand.Intn(len(n.Members))
 		var other string
 		i := 0
@@ -33,7 +37,6 @@ func (n *Node) heartbeet() {
 			i++
 		}
 		n.Ping(other)
-		fmt.Println(other)
 		time.Sleep(ping_interval)
 	}
 }
@@ -41,7 +44,6 @@ func (n *Node) heartbeet() {
 func NewNode(seed_address string, id int) *Node {
 	node := &Node{Members: make(map[string]bool), Id: id}
 	if seed_address != "" {
-		fmt.Println(seed_address)
 		node.Members[seed_address] = true
 	}
 	go node.Serve()
