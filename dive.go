@@ -36,6 +36,12 @@ func (n *Node) Address() string {
 	return fmt.Sprintf("tmp/dive_%d.node", n.Id)
 }
 
+func (n *Node) addMember(member string) {
+	if member != n.Address() {
+		n.Members[member] = true
+	}
+}
+
 func (n *Node) heartbeet() {
 	for {
 		if len(n.Members) > 0 {

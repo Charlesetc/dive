@@ -3,7 +3,6 @@
 package dive
 
 import (
-	//	"fmt"
 	"net"
 	"net/rpc"
 	"os"
@@ -49,21 +48,16 @@ func (n *Node) Serve() {
 
 func (s *Server) Ping(o *Option, r *Reply) error {
 	address := o.Address
-	if address != s.node.Address() {
 
-		for _, joinedNode := range o.Joins {
-			if joinedNode != s.node.Address() {
-				s.node.Members[joinedNode] = true
-			}
-		}
-
-		_, existance := s.node.Members[address]
-
-		if !existance {
-			s.node.Joins = append(s.node.Joins, address)
-			s.node.Members[address] = true
-		}
+	for _, joinedNode := range o.Joins {
+		s.node.addMember(joinedNode)
 	}
+
+	if _, ok := s.node.Members[address]; !ok {
+		s.node.Joins = append(s.node.Joins, address)
+		s.node.addMember(address)
+	}
+
 	r.Ack = true
 	return nil
 }
