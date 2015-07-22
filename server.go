@@ -1,0 +1,74 @@
+// Server.go
+
+package dive
+
+import (
+	"fmt"
+	"net"
+	"net/rpc"
+	"os"
+)
+
+// Server
+
+type Server struct {
+	node *Node
+}
+
+type Option struct {
+	Address string
+}
+
+type Reply struct {
+	Ack bool
+}
+
+func (n *Node) Serve() {
+	rpcs := rpc.NewServer()
+	s := &Server{node: n}
+	rpcs.Register(s)
+
+	os.Remove(n.Address())
+
+	l, err := net.Listen("unix", n.Address())
+
+	if err != nil {
+		panic(err)
+	}
+
+	for {
+		conn, err := l.Accept()
+		if err != nil {
+			panic(err)
+		}
+		go rpcs.ServeConn(conn)
+	}
+
+}
+
+func (s *Server) Ping(o *Option, r *Reply) error {
+	address := o.Address
+	if address != s.node.Address() {
+		s.node.Members[address] = true
+	}
+	r.Ack = true
+	return nil
+}
+
+// Client
+
+func (n *Node) Ping(address string) bool {
+	fmt.Println("Hi")
+	conn, err := rpc.Dial("unix", address)
+	if err != nil {
+		panic(err)
+	}
+	defer conn.Close()
+
+	r := new(Reply)
+	o := new(Option)
+	o.Address = n.Address()
+
+	err = conn.Call("Server.Ping", o, r)
+	return r.Ack
+}
