@@ -37,7 +37,7 @@ func (n *Node) Address() string {
 }
 
 func (n *Node) addMember(member string) {
-	if member != n.Address() {
+	if member != "" && member != n.Address() {
 		n.Members[member] = true
 	}
 }
@@ -59,11 +59,12 @@ func NewNode(seedAddress string, id int) *Node {
 		Joins:   make([]string, 0),
 		Id:      id,
 	}
-	if seedAddress != "" {
-		node.Members[seedAddress] = true
-	}
+
+	node.addMember(seedAddress)
+
 	go node.Serve()
 	go node.heartbeet()
+
 	return node
 }
 
