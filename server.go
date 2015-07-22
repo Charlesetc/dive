@@ -3,6 +3,7 @@
 package dive
 
 import (
+	"fmt"
 	"net"
 	"net/rpc"
 	"os"
@@ -48,6 +49,7 @@ func (n *Node) Serve() {
 func (s *Server) Ping(o *Option, r *Reply) error {
 	address := o.Address
 	if address != s.node.Address() {
+		fmt.Println(s.node.Address(), len(s.node.Members))
 		s.node.Members[address] = true
 	}
 	r.Ack = true

@@ -50,3 +50,7 @@ func NewNode(seed_address string, id int) *Node {
 	go node.heartbeet()
 	return node
 }
+
+func init() {
+	rand.Seed(int64(time.Now().Nanosecond()))
+}

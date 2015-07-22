@@ -32,7 +32,7 @@ func TestDive(t *testing.T) {
 
 	for _, node := range nodes {
 		if len(node.Members) != len(nodes)-1 {
-			t.Errorf("Node %d thinks there are %d nodes!", node.Id, len(node.Members))
+			t.Errorf("Node %d thinks there are %d node(s)!", node.Id, len(node.Members))
 		}
 	}
 
