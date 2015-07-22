@@ -50,12 +50,12 @@ func (s *Server) Ping(o *Option, r *Reply) error {
 	address := o.Address
 
 	for _, joinedNode := range o.Joins {
-		s.node.addMember(joinedNode)
+		s.node.addMember <- joinedNode
 	}
 
 	if _, ok := s.node.Members[address]; !ok {
-		s.node.Joins = append(s.node.Joins, address)
-		s.node.addMember(address)
+		s.node.addJoin <- address
+		s.node.addMember <- address
 	}
 
 	r.Ack = true
@@ -65,6 +65,7 @@ func (s *Server) Ping(o *Option, r *Reply) error {
 // Client
 
 func (n *Node) Ping(address string) bool {
+	// fmt.Println(address)
 	conn, err := rpc.Dial("unix", address)
 	if err != nil {
 		panic(err)
