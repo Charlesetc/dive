@@ -9,11 +9,12 @@ import (
 )
 
 const (
-	ping_interval time.Duration = time.Millisecond * 100
+	ping_interval time.Duration = time.Millisecond * 300
 )
 
 type Node struct {
 	Members map[string]bool
+	Joins   []string
 	Id      int
 }
 
@@ -42,7 +43,11 @@ func (n *Node) heartbeet() {
 }
 
 func NewNode(seed_address string, id int) *Node {
-	node := &Node{Members: make(map[string]bool), Id: id}
+	node := &Node{
+		Members: make(map[string]bool),
+		Joins:   make([]string, 0),
+		Id:      id,
+	}
 	if seed_address != "" {
 		node.Members[seed_address] = true
 	}

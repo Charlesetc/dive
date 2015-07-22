@@ -3,7 +3,7 @@
 package dive
 
 import (
-	"fmt"
+	//	"fmt"
 	"net"
 	"net/rpc"
 	"os"
@@ -17,6 +17,7 @@ type Server struct {
 
 type Option struct {
 	Address string
+	Joins   []string
 }
 
 type Reply struct {
@@ -49,8 +50,19 @@ func (n *Node) Serve() {
 func (s *Server) Ping(o *Option, r *Reply) error {
 	address := o.Address
 	if address != s.node.Address() {
-		fmt.Println(s.node.Address(), len(s.node.Members))
-		s.node.Members[address] = true
+
+		for _, joinedNode := range o.Joins {
+			if joinedNode != s.node.Address() {
+				s.node.Members[joinedNode] = true
+			}
+		}
+
+		_, existance := s.node.Members[address]
+
+		if !existance {
+			s.node.Joins = append(s.node.Joins, address)
+			s.node.Members[address] = true
+		}
 	}
 	r.Ack = true
 	return nil
@@ -68,6 +80,7 @@ func (n *Node) Ping(address string) bool {
 	r := new(Reply)
 	o := new(Option)
 	o.Address = n.Address()
+	o.Joins = n.Joins
 
 	err = conn.Call("Server.Ping", o, r)
 	return r.Ack

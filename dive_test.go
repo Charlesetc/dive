@@ -27,7 +27,7 @@ func TestDive(t *testing.T) {
 	}
 
 	fmt.Println("Waiting...")
-	time.Sleep(time.Second)
+	time.Sleep(ping_interval * 10)
 	fmt.Println("Done waiting.")
 
 	for _, node := range nodes {
