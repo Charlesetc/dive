@@ -5,12 +5,19 @@ package dive
 import (
 	"fmt"
 	"math/rand"
+	//"runtime"
+	"sync"
 	"time"
 )
 
 const (
 	PingInterval time.Duration = time.Millisecond * 10
 )
+
+func init() {
+	// runtime.GOMAXPROCS(runtime.NumCPU())
+	rand.Seed(time.Now().UnixNano())
+}
 
 func randomMember(members map[string]bool) (member string) {
 	index := rand.Intn(len(members))
@@ -30,6 +37,7 @@ type Node struct {
 	Members map[string]bool
 	Joins   []string
 	Id      int
+	m       *sync.Mutex
 }
 
 func (n *Node) Address() string {
@@ -38,7 +46,9 @@ func (n *Node) Address() string {
 
 func (n *Node) addMember(member string) {
 	if member != "" && member != n.Address() {
+		n.m.Lock()
 		n.Members[member] = true
+		n.m.Unlock()
 	}
 }
 
@@ -58,6 +68,7 @@ func NewNode(seedAddress string, id int) *Node {
 		Members: make(map[string]bool),
 		Joins:   make([]string, 0),
 		Id:      id,
+		m:       &sync.Mutex{},
 	}
 
 	node.addMember(seedAddress)
@@ -66,8 +77,4 @@ func NewNode(seedAddress string, id int) *Node {
 	go node.heartbeet()
 
 	return node
-}
-
-func init() {
-	rand.Seed(time.Now().UnixNano())
 }
