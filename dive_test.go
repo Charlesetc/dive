@@ -28,6 +28,8 @@ func NewCluster(size int) []*Node {
 	nodes[0] = first
 	seed := first.Address()
 
+	time.Sleep(PingInterval)
+
 	for i := 1; i < ClusterSize; i++ {
 		nodes[i] = NewNode(seed, i)
 	}
