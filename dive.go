@@ -41,7 +41,7 @@ type Node struct {
 }
 
 func (n *Node) Address() string {
-	return fmt.Sprintf("tmp/dive_%d.node", n.Id)
+	return fmt.Sprintf("/var/tmp/dive_%d.node", n.Id)
 }
 
 func (n *Node) heartbeat() {
