@@ -5,9 +5,15 @@ package dive
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"testing"
 	"time"
 )
+
+func init() {
+	exec.Command("rm", "-r", "tmp").Output()
+	exec.Command("mkdir", "-p", "tmp").Output()
+}
 
 const (
 	ClusterSize int           = 50
