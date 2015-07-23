@@ -5,7 +5,7 @@ package dive
 import (
 	"fmt"
 	"math/rand"
-	//"runtime"
+	// "runtime"
 	"time"
 )
 
@@ -56,9 +56,11 @@ func (n *Node) heartbeat() {
 }
 
 func (n *Node) keepJoinUpdated() {
-	var s string
-	s = <-n.addJoin
-	n.Joins = append(n.Joins, s)
+	for {
+		var s string
+		s = <-n.addJoin
+		n.Joins = append(n.Joins, s)
+	}
 }
 
 func (n *Node) keepMemberUpdated() {

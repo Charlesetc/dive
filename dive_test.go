@@ -9,7 +9,8 @@ import (
 )
 
 const (
-	ClusterSize int = 10
+	ClusterSize int           = 10
+	Propagation time.Duration = time.Duration(2 * ClusterSize)
 )
 
 func checkMembers(t *testing.T, nodes []*Node) {
@@ -38,7 +39,7 @@ func TestDive(t *testing.T) {
 	nodes := NewCluster(ClusterSize)
 
 	fmt.Println("Waiting...")
-	time.Sleep(PingInterval * 50)
+	time.Sleep(PingInterval * Propagation)
 
 	checkMembers(t, nodes)
 }
