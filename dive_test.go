@@ -47,7 +47,7 @@ func NewCluster(size int) []*Node {
 	return nodes
 }
 
-func TestDive(t *testing.T) {
+func TestBasicJoin(t *testing.T) {
 	nodes := NewCluster(ClusterSize)
 
 	fmt.Println("Waiting...")

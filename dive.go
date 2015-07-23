@@ -36,6 +36,7 @@ type Node struct {
 	Members   map[string]bool
 	Joins     []string
 	Id        int
+	alive     bool
 	addJoin   chan string
 	addMember chan string
 }
@@ -44,9 +45,17 @@ func (n *Node) Address() string {
 	return fmt.Sprintf("/var/tmp/dive_%d.node", n.Id)
 }
 
+func (n *Node) Kill() {
+	n.alive = false
+}
+
+func (n *Node) Revive() {
+	n.alive = true
+}
+
 func (n *Node) heartbeat() {
 	for {
-		if len(n.Members) > 0 {
+		if n.alive && len(n.Members) > 0 {
 			other := randomMember(n.Members)
 			n.Ping(other)
 		}
@@ -79,6 +88,7 @@ func NewNode(seedAddress string, id int) *Node {
 		Members:   make(map[string]bool),
 		Joins:     make([]string, 0),
 		Id:        id,
+		alive:     true,
 		addJoin:   make(chan string, 10),
 		addMember: make(chan string, 10),
 	}

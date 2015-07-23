@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/rpc"
 	"os"
+	"time"
 )
 
 // Server
@@ -38,13 +39,16 @@ func (n *Node) Serve() {
 	}
 
 	for {
-		conn, err := l.Accept()
-		if err != nil {
-			panic(err)
+		if n.alive {
+			conn, err := l.Accept()
+			if err != nil {
+				panic(err)
+			}
+			go rpcs.ServeConn(conn)
+		} else {
+			time.Sleep(time.Millisecond * PingInterval)
 		}
-		go rpcs.ServeConn(conn)
 	}
-
 }
 
 func (s *Server) Ping(o *Option, r *Reply) error {
