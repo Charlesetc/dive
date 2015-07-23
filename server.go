@@ -17,12 +17,12 @@ type Server struct {
 
 type Option struct {
 	Address string
-	Joins   []string
+	Nodes   []*NodeRecord
 }
 
 type Reply struct {
 	Ack   bool
-	Joins []string
+	Nodes []*NodeRecord
 }
 
 func (n *Node) Serve() {
@@ -54,17 +54,14 @@ func (n *Node) Serve() {
 func (s *Server) Ping(o *Option, r *Reply) error {
 	address := o.Address
 
-	for _, joinedNode := range o.Joins {
+	for _, joinedNode := range o.Nodes {
 		s.node.addMember <- joinedNode
 	}
 
-	if _, ok := s.node.Members[address]; !ok {
-		s.node.addJoin <- address
-		s.node.addMember <- address
-	}
+	s.node.addMember <- &NodeRecord{Address: address}
 
 	r.Ack = true
-	r.Joins = s.node.Joins
+	r.Nodes = s.node.PickMembers()
 	return nil
 }
 
@@ -81,7 +78,7 @@ func (n *Node) Ping(address string) bool {
 	r := new(Reply)
 	o := new(Option)
 	o.Address = n.Address()
-	o.Joins = n.Joins
+	o.Nodes = n.PickMembers()
 
 	err = conn.Call("Server.Ping", o, r)
 
@@ -89,8 +86,8 @@ func (n *Node) Ping(address string) bool {
 		panic(err)
 	}
 
-	for _, joinedNode := range r.Joins {
-		n.addMember <- joinedNode
+	for _, nodeRecord := range r.Nodes {
+		n.addMember <- nodeRecord
 	}
 
 	return r.Ack

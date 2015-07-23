@@ -13,12 +13,20 @@ const (
 	PingInterval time.Duration = time.Millisecond * 10
 )
 
+type Status int
+
+const (
+	ALIVE Status = iota
+	SUSPECT
+	FAIL
+)
+
 func init() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	rand.Seed(time.Now().UnixNano())
 }
 
-func randomMember(members map[string]bool) (member string) {
+func randomMember(members map[string]*NodeRecord) (member string) {
 	index := rand.Intn(len(members))
 	count := 0
 
@@ -28,17 +36,22 @@ func randomMember(members map[string]bool) (member string) {
 		}
 		count++
 	}
-
 	return
 }
 
 type Node struct {
-	Members   map[string]bool
-	Joins     []string
+	Members   map[string]*NodeRecord
 	Id        int
 	alive     bool
-	addJoin   chan string
-	addMember chan string
+	addMember chan *NodeRecord
+}
+
+type NodeRecord struct {
+	// Might pass around the count for more network traffic
+	// and faster distribution, but probably not a good idea.
+	// count   int
+	Status
+	Address string
 }
 
 func (n *Node) Address() string {
@@ -53,6 +66,14 @@ func (n *Node) Revive() {
 	n.alive = true
 }
 
+func (n *Node) PickMembers() []*NodeRecord {
+	outMembers := make([]*NodeRecord, 0)
+	for _, nodeRecord := range n.Members {
+		outMembers = append(outMembers, nodeRecord)
+	}
+	return outMembers
+}
+
 func (n *Node) heartbeat() {
 	for {
 		if n.alive && len(n.Members) > 0 {
@@ -64,38 +85,27 @@ func (n *Node) heartbeat() {
 	}
 }
 
-func (n *Node) keepJoinUpdated() {
-	for {
-		var s string
-		s = <-n.addJoin
-		n.Joins = append(n.Joins, s)
-	}
-}
-
 func (n *Node) keepMemberUpdated() {
-	var s string
+	var nodeRecord *NodeRecord
 	addr := n.Address()
 	for {
-		s = <-n.addMember
-		if s != "" && s != addr {
-			n.Members[s] = true
+		nodeRecord = <-n.addMember
+		if nodeRecord.Address != "" && nodeRecord.Address != addr {
+			n.Members[nodeRecord.Address] = nodeRecord
 		}
 	}
 }
 
 func NewNode(seedAddress string, id int) *Node {
 	node := &Node{
-		Members:   make(map[string]bool),
-		Joins:     make([]string, 0),
+		Members:   make(map[string]*NodeRecord),
 		Id:        id,
 		alive:     true,
-		addJoin:   make(chan string, 10),
-		addMember: make(chan string, 10),
+		addMember: make(chan *NodeRecord, 1), // might need to be buffered?
 	}
 
-	node.addMember <- seedAddress
+	node.addMember <- &NodeRecord{Address: seedAddress}
 
-	go node.keepJoinUpdated()
 	go node.keepMemberUpdated()
 	go node.Serve()
 	go node.heartbeat()

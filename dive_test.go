@@ -63,7 +63,7 @@ func TestFailures(t *testing.T) {
 	checkMembers(t, nodes)
 
 	failed := nodes[4]
-	failed.fail()
+	failed.Kill()
 
 	time.Sleep(PingInterval * Propagation)
 
