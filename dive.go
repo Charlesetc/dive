@@ -44,6 +44,7 @@ type Node struct {
 	Id        int
 	alive     bool
 	addMember chan *NodeRecord
+	pingList  []*NodeRecord
 }
 
 type NodeRecord struct {
@@ -52,6 +53,19 @@ type NodeRecord struct {
 	// count   int
 	Status
 	Address string
+}
+
+func (n *Node) NextPing(index int) *NodeRecord {
+	index = index % len(n.pingList)
+
+	if index == 0 {
+		for i := range pingList {
+			j := rand.Intn(i + 1)
+			n.pingList[i], n.pingList[j] = n.pingList[j], n.pingList[i]
+		}
+	}
+
+	return n.pingList[index]
 }
 
 func (n *Node) Address() string {
@@ -92,6 +106,10 @@ func (n *Node) keepMemberUpdated() {
 		nodeRecord = <-n.addMember
 		if nodeRecord.Address != "" && nodeRecord.Address != addr {
 			n.Members[nodeRecord.Address] = nodeRecord
+			n.pingList = append(n.pingList, nodeRecord)
+			i := len(n.pingList) - 1
+			j := rand.Intn(i + 1)
+			n.pingList[i], n.pingList[j] = n.pingList[j], n.pingList[i]
 		}
 	}
 }
@@ -102,6 +120,7 @@ func NewNode(seedAddress string, id int) *Node {
 		Id:        id,
 		alive:     true,
 		addMember: make(chan *NodeRecord, 1), // might need to be buffered?
+		pingList:  make([]*NodeRecord),
 	}
 
 	node.addMember <- &NodeRecord{Address: seedAddress}
