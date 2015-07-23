@@ -21,6 +21,16 @@ func checkMembers(t *testing.T, nodes []*Node) {
 	}
 }
 
+func checkFailure(t *testing.T, nodes []*Node, failed *Node) {
+	for _, node := range nodes {
+		for member, _ := range node.Members {
+			if member == failed.Address() {
+				t.Errorf("%s thinks %s is alive", node.Address(), failed.Address())
+			}
+		}
+	}
+}
+
 func NewCluster(size int) []*Node {
 	nodes := make([]*Node, ClusterSize)
 
@@ -44,4 +54,18 @@ func TestDive(t *testing.T) {
 	time.Sleep(PingInterval * Propagation)
 
 	checkMembers(t, nodes)
+}
+
+func TestFailures(t *testing.T) {
+	nodes := NewCluster(ClusterSize)
+
+	time.Sleep(PingInterval * Propagation)
+	checkMembers(t, nodes)
+
+	failed := nodes[4]
+	failed.fail()
+
+	time.Sleep(PingInterval * Propagation)
+
+	checkFailure(t, nodes, failed)
 }
