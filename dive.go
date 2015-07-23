@@ -26,25 +26,14 @@ func init() {
 	rand.Seed(time.Now().UnixNano())
 }
 
-func randomMember(members map[string]*NodeRecord) (member string) {
-	index := rand.Intn(len(members))
-	count := 0
-
-	for member = range members {
-		if count == index {
-			break
-		}
-		count++
-	}
-	return
-}
-
 type Node struct {
-	Members   map[string]*NodeRecord
-	Id        int
-	alive     bool
-	addMember chan *NodeRecord
-	pingList  []*NodeRecord
+	Members       map[string]*NodeRecord
+	Id            int
+	alive         bool
+	addMember     chan *NodeRecord
+	pingList      []*NodeRecord
+	requestMember chan bool
+	returnMember  chan *NodeRecord
 }
 
 type NodeRecord struct {
@@ -59,7 +48,7 @@ func (n *Node) NextPing(index int) *NodeRecord {
 	index = index % len(n.pingList)
 
 	if index == 0 {
-		for i := range pingList {
+		for i := range n.pingList {
 			j := rand.Intn(i + 1)
 			n.pingList[i], n.pingList[j] = n.pingList[j], n.pingList[i]
 		}
@@ -91,8 +80,9 @@ func (n *Node) PickMembers() []*NodeRecord {
 func (n *Node) heartbeat() {
 	for {
 		if n.alive && len(n.Members) > 0 {
-			other := randomMember(n.Members)
-			n.Ping(other)
+			n.requestMember <- true
+			other := <-n.returnMember
+			n.Ping(other.Address)
 		}
 
 		time.Sleep(PingInterval)
@@ -102,25 +92,33 @@ func (n *Node) heartbeat() {
 func (n *Node) keepMemberUpdated() {
 	var nodeRecord *NodeRecord
 	addr := n.Address()
+	ping_index := 0
 	for {
-		nodeRecord = <-n.addMember
-		if nodeRecord.Address != "" && nodeRecord.Address != addr {
-			n.Members[nodeRecord.Address] = nodeRecord
-			n.pingList = append(n.pingList, nodeRecord)
-			i := len(n.pingList) - 1
-			j := rand.Intn(i + 1)
-			n.pingList[i], n.pingList[j] = n.pingList[j], n.pingList[i]
+		select {
+		case nodeRecord = <-n.addMember:
+			if nodeRecord.Address != "" && nodeRecord.Address != addr {
+				n.Members[nodeRecord.Address] = nodeRecord
+				n.pingList = append(n.pingList, nodeRecord)
+				i := len(n.pingList) - 1
+				j := rand.Intn(i + 1)
+				n.pingList[i], n.pingList[j] = n.pingList[j], n.pingList[i]
+			}
+		case _ = <-n.requestMember:
+			n.returnMember <- n.NextPing(ping_index)
+			ping_index++
 		}
 	}
 }
 
 func NewNode(seedAddress string, id int) *Node {
 	node := &Node{
-		Members:   make(map[string]*NodeRecord),
-		Id:        id,
-		alive:     true,
-		addMember: make(chan *NodeRecord, 1), // might need to be buffered?
-		pingList:  make([]*NodeRecord),
+		Members:       make(map[string]*NodeRecord),
+		Id:            id,
+		alive:         true,
+		addMember:     make(chan *NodeRecord, 1), // might need to be buffered?
+		pingList:      make([]*NodeRecord, 0),
+		requestMember: make(chan bool, 1),
+		returnMember:  make(chan *NodeRecord, 1),
 	}
 
 	node.addMember <- &NodeRecord{Address: seedAddress}
