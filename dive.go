@@ -110,10 +110,10 @@ func (n *Node) keepMemberUpdated() {
 	}
 }
 
-func NewNode(seedAddress string, id int) *Node {
+func NewNode(seedAddress string) *Node {
 	node := &Node{
 		Members:       make(map[string]*NodeRecord),
-		Id:            id,
+		Id:            time.Now().Nanosecond(),
 		alive:         true,
 		addMember:     make(chan *NodeRecord, 1), // might need to be buffered?
 		pingList:      make([]*NodeRecord, 0),

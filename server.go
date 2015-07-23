@@ -5,7 +5,6 @@ package dive
 import (
 	"net"
 	"net/rpc"
-	"os"
 	"time"
 )
 
@@ -29,8 +28,6 @@ func (n *Node) Serve() {
 	rpcs := rpc.NewServer()
 	s := &Server{node: n}
 	rpcs.Register(s)
-
-	os.Remove(n.Address())
 
 	l, err := net.Listen("unix", n.Address())
 

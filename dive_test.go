@@ -4,6 +4,7 @@ package dive
 
 import (
 	"fmt"
+	"os"
 	"testing"
 	"time"
 )
@@ -31,17 +32,23 @@ func checkFailure(t *testing.T, nodes []*Node, failed *Node) {
 	}
 }
 
+func destroyCluster(nodes []*Node) {
+	for _, node := range nodes {
+		os.Remove(node.Address())
+	}
+}
+
 func NewCluster(size int) []*Node {
 	nodes := make([]*Node, ClusterSize)
 
-	first := NewNode("", 0)
+	first := NewNode("")
 	nodes[0] = first
 	seed := first.Address()
 
 	time.Sleep(PingInterval)
 
 	for i := 1; i < ClusterSize; i++ {
-		nodes[i] = NewNode(seed, i)
+		nodes[i] = NewNode(seed)
 	}
 
 	return nodes
