@@ -20,7 +20,8 @@ type Option struct {
 }
 
 type Reply struct {
-	Ack bool
+	Ack   bool
+	Joins []string
 }
 
 func (n *Node) Serve() {
@@ -59,6 +60,7 @@ func (s *Server) Ping(o *Option, r *Reply) error {
 	}
 
 	r.Ack = true
+	r.Joins = s.node.Joins
 	return nil
 }
 
@@ -78,5 +80,14 @@ func (n *Node) Ping(address string) bool {
 	o.Joins = n.Joins
 
 	err = conn.Call("Server.Ping", o, r)
+
+	if err != nil {
+		panic(err)
+	}
+
+	for _, joinedNode := range r.Joins {
+		n.addMember <- joinedNode
+	}
+
 	return r.Ack
 }
