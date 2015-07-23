@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	ClusterSize int           = 10
+	ClusterSize int           = 50
 	Propagation time.Duration = time.Duration(2 * ClusterSize)
 )
 

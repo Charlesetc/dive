@@ -5,7 +5,7 @@ package dive
 import (
 	"fmt"
 	"math/rand"
-	// "runtime"
+	"runtime"
 	"time"
 )
 
@@ -14,7 +14,7 @@ const (
 )
 
 func init() {
-	// runtime.GOMAXPROCS(runtime.NumCPU())
+	runtime.GOMAXPROCS(runtime.NumCPU())
 	rand.Seed(time.Now().UnixNano())
 }
 
