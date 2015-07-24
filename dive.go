@@ -4,6 +4,7 @@ package dive
 
 import (
 	"fmt"
+	"log"
 	"math/rand"
 	"runtime"
 	"time"
@@ -83,7 +84,7 @@ func (n *Node) heartbeat() {
 		if n.alive && len(n.Members) > 0 {
 			n.requestMember <- true
 			other := <-n.returnMember
-			n.Ping(other.Address)
+			go n.Ping(other.Address)
 		}
 
 		time.Sleep(PingInterval)
@@ -98,11 +99,15 @@ func (n *Node) keepMemberUpdated() {
 		select {
 		case nodeRecord = <-n.addMember:
 			if nodeRecord.Address != "" && nodeRecord.Address != addr {
+				if _, ok := n.Members[nodeRecord.Address]; !ok {
+					n.pingList = append(n.pingList, nodeRecord)
+					i := len(n.pingList) - 1
+					j := rand.Intn(i + 1)
+					n.pingList[i], n.pingList[j] = n.pingList[j], n.pingList[i]
+				}
+				log.Println("Member update", n.Address(), nodeRecord)
+
 				n.Members[nodeRecord.Address] = nodeRecord
-				n.pingList = append(n.pingList, nodeRecord)
-				i := len(n.pingList) - 1
-				j := rand.Intn(i + 1)
-				n.pingList[i], n.pingList[j] = n.pingList[j], n.pingList[i]
 			}
 		case _ = <-n.requestMember:
 			n.returnMember <- n.NextPing(pingIndex)

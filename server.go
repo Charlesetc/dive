@@ -80,11 +80,12 @@ func call(address string, method string, o interface{}, r interface{}) chan bool
 	resp := make(chan bool)
 
 	go func() {
-		err := conn.Call("Server.Ping", o, r)
+		err := conn.Call(method, o, r)
 		conn.Close()
 
 		if err != nil {
 			log.Println("Error", err)
+			return
 		}
 
 		resp <- true
@@ -93,7 +94,7 @@ func call(address string, method string, o interface{}, r interface{}) chan bool
 	return resp
 }
 
-func (n *Node) Ping(address string) bool {
+func (n *Node) Ping(address string) {
 	r := new(Reply)
 	o := new(Option)
 	o.Address = n.Address()
@@ -106,10 +107,7 @@ func (n *Node) Ping(address string) bool {
 		for _, nodeRecord := range r.Nodes {
 			n.addMember <- nodeRecord
 		}
-
-		return true
 	case <-time.After(Timeout):
-		log.Println("Failed", n.Address(), address)
-		return false
+		n.addMember <- &NodeRecord{Failed, address}
 	}
 }

@@ -4,6 +4,7 @@ package dive
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"testing"
@@ -76,6 +77,7 @@ func TestFailures(t *testing.T) {
 	checkMembers(t, nodes)
 
 	failed := nodes[4]
+	log.Println("Failed:", failed.Address())
 	failed.Kill()
 
 	time.Sleep(PingInterval * Propagation)
