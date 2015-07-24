@@ -63,7 +63,7 @@ func (s *Server) Ping(o *Option, r *Reply) error {
 	address := o.Address
 
 	for _, joinedNode := range o.Nodes {
-		s.node.addMember <- joinedNode
+		s.node.updateMember <- joinedNode
 	}
 
 	if _, exists := s.node.Members[address]; exists {

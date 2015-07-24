@@ -157,16 +157,13 @@ func (n *Node) keepNodeUpdated() {
 			}
 		case basic = <-n.updateMember:
 			if basic.Address != addr {
-				if _, exists := n.Members[basic.Address]; exists {
-					if basic.Address != addr {
-						n.Members[basic.Address].Status = basic.Status
-					} // Otherwise : raise error or tell someone
-					break
-				} // Else does not exist:
-				rec := new(LocalRecord)
-				rec.BasicRecord = *basic
-				rec.SendCount = -1
-				n.Members[basic.Address] = rec
+				if false {
+				} else {
+					rec := new(LocalRecord)
+					rec.BasicRecord = *basic
+					rec.SendCount = -1
+					n.Members[basic.Address] = rec
+				}
 			}
 		case basic = <-n.addMember:
 			if basic.Address != "" && basic.Address != addr {
