@@ -4,7 +4,6 @@ package dive
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 	"testing"
@@ -51,6 +50,7 @@ func NewCluster(size int) []*Node {
 	first := NewNode("")
 	nodes[0] = first
 	seed := first.Address()
+	fmt.Println("Seed:", seed)
 
 	time.Sleep(PingInterval)
 
@@ -77,7 +77,7 @@ func TestFailures(t *testing.T) {
 	checkMembers(t, nodes)
 
 	failed := nodes[4]
-	log.Println("Failed:", failed.Address())
+	fmt.Println("Failed:", failed.Address())
 	failed.Kill()
 
 	time.Sleep(PingInterval * Propagation)

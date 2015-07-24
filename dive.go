@@ -4,7 +4,6 @@ package dive
 
 import (
 	"fmt"
-	"log"
 	"math"
 	"math/rand"
 	"runtime"
@@ -12,7 +11,7 @@ import (
 )
 
 const (
-	PingInterval time.Duration = time.Millisecond * 10
+	PingInterval time.Duration = time.Millisecond * 100
 	Timeout                    = PingInterval / 3
 )
 
@@ -33,6 +32,7 @@ type Node struct {
 	Members       map[string]*LocalRecord
 	Id            int
 	alive         bool
+	evalMember    chan *BasicRecord
 	addMember     chan *BasicRecord
 	updateMember  chan *BasicRecord
 	failMember    chan *BasicRecord
@@ -54,7 +54,7 @@ type LocalRecord struct {
 	SendCount int
 }
 
-func NewNodeRecord(address string) *LocalRecord {
+func NewLocalRecord(address string) *LocalRecord {
 	return &LocalRecord{BasicRecord: BasicRecord{Address: address}}
 }
 
@@ -87,13 +87,25 @@ func (n *Node) PickMembers() []*BasicRecord {
 	outMembers := make([]*BasicRecord, 0)
 	for _, nodeRecord := range n.Members {
 		if float64(nodeRecord.SendCount) > math.Log(float64(len(n.Members))) {
-			log.Println("Not sending", nodeRecord, len(n.Members))
 			continue
 		}
 
 		nodeRecord.SendCount++
 		outMembers = append(outMembers, &nodeRecord.BasicRecord)
 	}
+
+	number_of_alive := 0
+	number_of_failed := 0
+
+	for _, mem := range n.Members {
+		if mem.Status == Alive {
+			number_of_alive++
+		} else {
+			fmt.Println(mem.Address)
+			number_of_failed++
+		}
+	}
+	fmt.Println("--\t", number_of_alive, "\t", number_of_failed, "\t", n.Address())
 	return outMembers
 }
 
@@ -115,23 +127,41 @@ func (n *Node) keepMemberUpdated() {
 	pingIndex := 0
 	for {
 		select {
-		case basic = <-n.updateMember:
-			node := new(LocalRecord)
-			node.BasicRecord = basic
-			node.SendCount = n.Members[basic.Address].SendCount
-
-			if basic.Address != addr {
-				n.Members[basic.Address] = node
+		case basic = <-n.evalMember:
+			if basic.Status != n.Members[basic.Address].Status {
+				n.Members[basic.Address].Status = basic.Status
+				n.Members[basic.Address].SendCount = 0
 			}
-		case basic = <-n.failMember:
+		case basic = <-n.updateMember:
+			if _, exists := n.Members[basic.Address]; exists {
+				if basic.Address != addr {
+					n.Members[basic.Address].Status = basic.Status
+				} // Otherwise : raise error or tell someone
+				break
+			} // Else does not exist:
+			rec := new(LocalRecord)
+			rec.BasicRecord = *basic
+			rec.SendCount = -1
+			n.Members[basic.Address] = rec
 		case basic = <-n.addMember:
 			if basic.Address != "" && basic.Address != addr {
+
+				// flip recent one
 				n.pingList = append(n.pingList, basic)
 				i := len(n.pingList) - 1
 				j := rand.Intn(i + 1)
 				n.pingList[i], n.pingList[j] = n.pingList[j], n.pingList[i]
-				n.Members[basic.Address] = basic
+
+				rec := new(LocalRecord)
+				rec.BasicRecord = *basic
+				rec.SendCount = 0
+				n.Members[basic.Address] = rec
 			}
+		case basic = <-n.failMember:
+			rec := new(LocalRecord)
+			rec.BasicRecord = *basic
+			rec.SendCount = 0
+			n.Members[basic.Address] = rec
 		case _ = <-n.requestMember:
 			n.returnMember <- *n.NextPing(pingIndex)
 			pingIndex++
@@ -144,15 +174,16 @@ func NewNode(seedAddress string) *Node {
 		Members:       make(map[string]*LocalRecord),
 		Id:            time.Now().Nanosecond(),
 		alive:         true,
-		addMember:     make(chan *BasicRecord, 1), // might need to be buffered?
-		updateMember:  make(chan *BasicRecord, 1), // might need to be buffered?
-		failMember:    make(chan *BasicRecord, 1), // might need to be buffered?
-		pingList:      make([]*LocalRecord, 0),
+		evalMember:    make(chan *BasicRecord, 1), // buffering?
+		addMember:     make(chan *BasicRecord, 1), // buffering?
+		failMember:    make(chan *BasicRecord, 1),
+		updateMember:  make(chan *BasicRecord, 1),
+		pingList:      make([]*BasicRecord, 0),
 		requestMember: make(chan bool, 1),
 		returnMember:  make(chan BasicRecord, 1),
 	}
 
-	node.addMember <- NewNodeRecord(seedAddress)
+	node.addMember <- &BasicRecord{Address: seedAddress}
 
 	go node.keepMemberUpdated()
 	go node.Serve()
