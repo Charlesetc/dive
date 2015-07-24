@@ -16,9 +16,9 @@ const (
 type Status int
 
 const (
-	ALIVE Status = iota
-	SUSPECT
-	FAIL
+	Alive Status = iota
+	Suspected
+	Failed
 )
 
 func init() {
@@ -92,7 +92,7 @@ func (n *Node) heartbeat() {
 func (n *Node) keepMemberUpdated() {
 	var nodeRecord *NodeRecord
 	addr := n.Address()
-	ping_index := 0
+	pingIndex := 0
 	for {
 		select {
 		case nodeRecord = <-n.addMember:
@@ -104,8 +104,8 @@ func (n *Node) keepMemberUpdated() {
 				n.pingList[i], n.pingList[j] = n.pingList[j], n.pingList[i]
 			}
 		case _ = <-n.requestMember:
-			n.returnMember <- n.NextPing(ping_index)
-			ping_index++
+			n.returnMember <- n.NextPing(pingIndex)
+			pingIndex++
 		}
 	}
 }
