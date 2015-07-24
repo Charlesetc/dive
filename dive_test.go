@@ -4,7 +4,6 @@ package dive
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 	"testing"
@@ -31,9 +30,13 @@ func checkMembers(t *testing.T, nodes []*Node) {
 
 func checkFailure(t *testing.T, nodes []*Node, failed *Node) {
 	for _, node := range nodes {
-		for member, _ := range node.Members {
-			if member == failed.Address() {
-				t.Errorf("%s thinks %s is alive", node.Address(), failed.Address())
+		for _, member := range node.Members {
+			if member.Address == failed.Address() && member.Status != Failed {
+				t.Errorf("%s thinks %s is alive", node.Address(), member.Address)
+			}
+
+			if member.Address != failed.Address() && member.Status != Alive {
+				t.Errorf("%s thinks %s is dead", node.Address(), member.Address)
 			}
 		}
 	}
@@ -51,6 +54,7 @@ func NewCluster(size int) []*Node {
 	first := NewNode("")
 	nodes[0] = first
 	seed := first.Address()
+	fmt.Println("Seed:", seed)
 
 	time.Sleep(PingInterval)
 
@@ -77,7 +81,7 @@ func TestFailures(t *testing.T) {
 	checkMembers(t, nodes)
 
 	failed := nodes[4]
-	log.Println("Failed:", failed.Address())
+	fmt.Println("Failed:", failed.Address())
 	failed.Kill()
 
 	time.Sleep(PingInterval * Propagation)

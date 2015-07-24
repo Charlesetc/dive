@@ -3,7 +3,7 @@
 package dive
 
 import (
-	"log"
+	"fmt"
 	"net"
 	"net/rpc"
 	"time"
@@ -56,7 +56,11 @@ func (s *Server) Ping(o *Option, r *Reply) error {
 		s.node.addMember <- joinedNode
 	}
 
-	s.node.addMember <- NewNodeRecord(address)
+	if _, exists := s.node.Members[address]; exists {
+		s.node.evalMember <- &BasicRecord{Address: address}
+	} else {
+		s.node.addMember <- &BasicRecord{Address: address}
+	}
 
 	r.Ack = true
 	r.Nodes = s.node.PickMembers()
@@ -84,7 +88,7 @@ func call(address string, method string, o interface{}, r interface{}) chan bool
 		conn.Close()
 
 		if err != nil {
-			log.Println("Error", err)
+			fmt.Println("Error", err)
 			return
 		}
 
@@ -106,11 +110,11 @@ func (n *Node) Ping(other BasicRecord) {
 	select {
 	case <-resp:
 		for _, nodeRecord := range r.Nodes {
-			n.addMember <- nodeRecord
+			n.updateMember <- nodeRecord
 		}
+		n.evalMember <- &other
 	case <-time.After(Timeout):
 		other.Status = Failed
-		other.SendCount = 0
-		n.addMember <- &other
+		n.failMember <- &other
 	}
 }
