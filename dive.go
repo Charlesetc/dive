@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	PingInterval time.Duration = time.Millisecond * 100
+	PingInterval time.Duration = time.Millisecond * 25
 	Timeout                    = PingInterval / 3
 )
 
