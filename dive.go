@@ -94,18 +94,6 @@ func (n *Node) PickMembers() []*BasicRecord {
 		outMembers = append(outMembers, &nodeRecord.BasicRecord)
 	}
 
-	number_of_alive := 0
-	number_of_failed := 0
-
-	for _, mem := range n.Members {
-		if mem.Status == Alive {
-			number_of_alive++
-		} else {
-			fmt.Println(mem.Address)
-			number_of_failed++
-		}
-	}
-	fmt.Println("--\t", number_of_alive, "\t", number_of_failed, "\t", n.Address())
 	return outMembers
 }
 
