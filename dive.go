@@ -1,4 +1,4 @@
-// main.go
+// dive.go
 
 package dive
 
@@ -11,8 +11,10 @@ import (
 )
 
 const (
+	// Time between Pings
 	PingInterval time.Duration = time.Millisecond * 60
-	Timeout                    = PingInterval / 3
+	// Time it takes for a ping to fail
+	Timeout = PingInterval / 3
 )
 
 type Status int
@@ -24,28 +26,47 @@ const (
 )
 
 func init() {
+	// Run on as many cores as possible
 	runtime.GOMAXPROCS(runtime.NumCPU())
+
+	// Be random each time
 	rand.Seed(time.Now().UnixNano())
 }
 
+// The internal structure for a node
+// holds and seperates channels, addresses,
+// and current members. Useful for testing.
 type Node struct {
-	Members       map[string]*LocalRecord
-	Id            int
-	alive         bool
-	evalMember    chan *BasicRecord
-	addMember     chan *BasicRecord
-	updateMember  chan *BasicRecord
-	failMember    chan *BasicRecord
-	pingList      []*BasicRecord
+
+	// A map from addresses to their LocalRecords
+	Members map[string]*LocalRecord
+	// Id used to generate address, as of now.
+	Id int
+
+	// Channels for thread-safety
+	evalMember   chan *BasicRecord
+	addMember    chan *BasicRecord
+	updateMember chan *BasicRecord
+	failMember   chan *BasicRecord
+
+	// Used to request the next ping safely
 	requestMember chan bool
-	returnMember  chan BasicRecord
+	// Used to return the next ping safely
+	returnMember chan BasicRecord
+
+	// This is for round-robin pinging
+	pingList []*BasicRecord
+	alive    bool
 }
 
+// Record passed to other nodes
 type BasicRecord struct {
 	Status
 	Address string
 }
 
+// Record kept locally
+// keeps # of times sent.
 type LocalRecord struct {
 	// Might pass around the count for more network traffic
 	// and faster distribution, but probably not a good idea.
@@ -54,10 +75,13 @@ type LocalRecord struct {
 	SendCount int
 }
 
+// Constructor for Local Record
 func NewLocalRecord(address string) *LocalRecord {
 	return &LocalRecord{BasicRecord: BasicRecord{Address: address}}
 }
 
+// Return next record in round-robin list
+// thread-safe
 func (n *Node) NextPing(index int) *BasicRecord {
 	index = index % len(n.pingList)
 
@@ -71,18 +95,24 @@ func (n *Node) NextPing(index int) *BasicRecord {
 	return n.pingList[index]
 }
 
+// Get the address of a node
 func (n *Node) Address() string {
 	return fmt.Sprintf("tmp/dive_%d.node", n.Id)
 }
 
+// Artificially kill a node
 func (n *Node) Kill() {
 	n.alive = false
 }
 
+// Artificially revive a node
 func (n *Node) Revive() {
 	n.alive = true
 }
 
+// Choose the records to send to other nodes
+// Only takes ones that haven't been sent
+// too many times before
 func (n *Node) PickMembers() []*BasicRecord {
 	outMembers := make([]*BasicRecord, 0)
 	for _, nodeRecord := range n.Members {
@@ -97,6 +127,7 @@ func (n *Node) PickMembers() []*BasicRecord {
 	return outMembers
 }
 
+// Start pinging every heartbeat
 func (n *Node) heartbeat() {
 	for {
 		if n.alive && len(n.Members) > 0 {
@@ -109,7 +140,9 @@ func (n *Node) heartbeat() {
 	}
 }
 
-func (n *Node) keepMemberUpdated() {
+// Look at Node's channels and process
+// incoming requests.
+func (n *Node) keepNodeUpdated() {
 	var basic *BasicRecord
 	addr := n.Address()
 	pingIndex := 0
@@ -160,6 +193,10 @@ func (n *Node) keepMemberUpdated() {
 	}
 }
 
+// Make a New Node
+// if seedAddress is empty,
+// it's the seed node and the address
+// is ignored
 func NewNode(seedAddress string) *Node {
 	node := &Node{
 		Members:       make(map[string]*LocalRecord),
@@ -176,7 +213,7 @@ func NewNode(seedAddress string) *Node {
 
 	node.addMember <- &BasicRecord{Address: seedAddress}
 
-	go node.keepMemberUpdated()
+	go node.keepNodeUpdated()
 	go node.Serve()
 	go node.heartbeat()
 

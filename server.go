@@ -9,22 +9,30 @@ import (
 	"time"
 )
 
-// Server
+//// Server
 
 type Server struct {
 	node *Node
 }
 
+// The input to an rpc service.
+// what server.ping takes
+// what node.ping gives
 type Option struct {
 	Address string
 	Nodes   []*BasicRecord
 }
 
+// The ouput to an rpc service.
+// what server.ping writes to
+// what node.ping gets out of server.ping
 type Reply struct {
 	Ack   bool
 	Nodes []*BasicRecord
 }
 
+// Repeatedly listen for connections
+// which server.ping handles
 func (n *Node) Serve() {
 	rpcs := rpc.NewServer()
 	s := &Server{node: n}
@@ -49,6 +57,8 @@ func (n *Node) Serve() {
 	}
 }
 
+// A Handler for any incoming connections.
+// The server "is pinged"
 func (s *Server) Ping(o *Option, r *Reply) error {
 	address := o.Address
 
@@ -79,6 +89,8 @@ func dial(address string) *rpc.Client {
 	return conn
 }
 
+// Useful function for calling any method on
+// a remote receiver
 func call(address string, method string, o interface{}, r interface{}) chan bool {
 	conn := dial(address)
 	resp := make(chan bool)
@@ -98,6 +110,8 @@ func call(address string, method string, o interface{}, r interface{}) chan bool
 	return resp
 }
 
+// Sends a message.
+// The node "pings other"
 func (n *Node) Ping(other BasicRecord) {
 	address := other.Address
 	r := new(Reply)
@@ -107,6 +121,7 @@ func (n *Node) Ping(other BasicRecord) {
 
 	resp := call(address, "Server.Ping", o, r)
 
+	// Either get a response or timeout
 	select {
 	case <-resp:
 		for _, nodeRecord := range r.Nodes {
