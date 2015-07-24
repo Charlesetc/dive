@@ -17,12 +17,12 @@ type Server struct {
 
 type Option struct {
 	Address string
-	Nodes   []*NodeRecord
+	Nodes   []*BasicRecord
 }
 
 type Reply struct {
 	Ack   bool
-	Nodes []*NodeRecord
+	Nodes []*BasicRecord
 }
 
 func (n *Node) Serve() {
@@ -56,7 +56,7 @@ func (s *Server) Ping(o *Option, r *Reply) error {
 		s.node.addMember <- joinedNode
 	}
 
-	s.node.addMember <- &NodeRecord{Address: address}
+	s.node.addMember <- NewNodeRecord(address)
 
 	r.Ack = true
 	r.Nodes = s.node.PickMembers()
@@ -80,11 +80,12 @@ func call(address string, method string, o interface{}, r interface{}) chan bool
 	resp := make(chan bool)
 
 	go func() {
-		err := conn.Call("Server.Ping", o, r)
+		err := conn.Call(method, o, r)
 		conn.Close()
 
 		if err != nil {
 			log.Println("Error", err)
+			return
 		}
 
 		resp <- true
@@ -93,7 +94,8 @@ func call(address string, method string, o interface{}, r interface{}) chan bool
 	return resp
 }
 
-func (n *Node) Ping(address string) bool {
+func (n *Node) Ping(other BasicRecord) {
+	address := other.Address
 	r := new(Reply)
 	o := new(Option)
 	o.Address = n.Address()
@@ -106,10 +108,9 @@ func (n *Node) Ping(address string) bool {
 		for _, nodeRecord := range r.Nodes {
 			n.addMember <- nodeRecord
 		}
-
-		return true
 	case <-time.After(Timeout):
-		log.Println("Failed", n.Address(), address)
-		return false
+		other.Status = Failed
+		other.SendCount = 0
+		n.addMember <- &other
 	}
 }
