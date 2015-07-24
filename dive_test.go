@@ -21,6 +21,12 @@ const (
 
 func checkMembers(t *testing.T, nodes []*Node) {
 	for _, node := range nodes {
+		for _, member := range node.Members {
+			if member.Status != Alive {
+				t.Errorf("Member failed: %s, %s", member.Address, node.Address())
+			}
+		}
+
 		if len(node.Members) != len(nodes)-1 {
 			t.Errorf("Node %d thinks there are %d node(s)!", node.Id, len(node.Members))
 		}
@@ -83,4 +89,10 @@ func TestFailures(t *testing.T) {
 	time.Sleep(PingInterval * Propagation)
 
 	checkFailure(t, nodes, failed)
+
+	failed.Revive()
+
+	time.Sleep(PingInterval * Propagation)
+
+	checkMembers(t, nodes)
 }
