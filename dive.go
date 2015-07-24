@@ -128,24 +128,27 @@ func (n *Node) keepMemberUpdated() {
 	for {
 		select {
 		case basic = <-n.evalMember:
-			if basic.Status != n.Members[basic.Address].Status {
-				n.Members[basic.Address].Status = basic.Status
-				n.Members[basic.Address].SendCount = 0
+			if basic.Address != addr {
+				if basic.Status != n.Members[basic.Address].Status {
+					n.Members[basic.Address].Status = basic.Status
+					n.Members[basic.Address].SendCount = 0
+				}
 			}
 		case basic = <-n.updateMember:
-			if _, exists := n.Members[basic.Address]; exists {
-				if basic.Address != addr {
-					n.Members[basic.Address].Status = basic.Status
-				} // Otherwise : raise error or tell someone
-				break
-			} // Else does not exist:
-			rec := new(LocalRecord)
-			rec.BasicRecord = *basic
-			rec.SendCount = -1
-			n.Members[basic.Address] = rec
+			if basic.Address != addr {
+				if _, exists := n.Members[basic.Address]; exists {
+					if basic.Address != addr {
+						n.Members[basic.Address].Status = basic.Status
+					} // Otherwise : raise error or tell someone
+					break
+				} // Else does not exist:
+				rec := new(LocalRecord)
+				rec.BasicRecord = *basic
+				rec.SendCount = -1
+				n.Members[basic.Address] = rec
+			}
 		case basic = <-n.addMember:
 			if basic.Address != "" && basic.Address != addr {
-
 				// flip recent one
 				n.pingList = append(n.pingList, basic)
 				i := len(n.pingList) - 1
