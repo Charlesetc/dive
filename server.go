@@ -64,12 +64,23 @@ func (s *Server) Ping(o *Option, r *Reply) error {
 
 // Client
 
-func (n *Node) Ping(address string) bool {
-	// fmt.Println(address)
+func dial(address string) *rpc.Client {
 	conn, err := rpc.Dial("unix", address)
+
 	if err != nil {
 		panic(err)
 	}
+
+	return conn
+}
+
+func call(conn *rpc.Client, method string, args interface{}, reply interface{}) error {
+	err := conn.Call("Server.Ping", args, reply)
+	return err
+}
+
+func (n *Node) Ping(address string) bool {
+	conn := dial(address)
 	defer conn.Close()
 
 	r := new(Reply)
@@ -77,7 +88,7 @@ func (n *Node) Ping(address string) bool {
 	o.Address = n.Address()
 	o.Nodes = n.PickMembers()
 
-	err = conn.Call("Server.Ping", o, r)
+	err := call(conn, "Server.Ping", o, r)
 
 	if err != nil {
 		panic(err)
