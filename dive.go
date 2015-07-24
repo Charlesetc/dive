@@ -55,8 +55,9 @@ type Node struct {
 	returnMember chan BasicRecord
 
 	// This is for round-robin pinging
-	pingList []*BasicRecord
-	alive    bool
+	pingList  []*BasicRecord
+	pingIndex int
+	alive     bool
 }
 
 // Record passed to other nodes
@@ -82,7 +83,8 @@ func NewLocalRecord(address string) *LocalRecord {
 
 // Return next record in round-robin list
 // thread-safe
-func (n *Node) NextPing(index int) *BasicRecord {
+func (n *Node) NextPing() *BasicRecord {
+	index := n.pingIndex
 	index = index % len(n.pingList)
 
 	if index == 0 {
@@ -140,52 +142,80 @@ func (n *Node) heartbeat() {
 	}
 }
 
+func (n *Node) addToPingList(basic *BasicRecord) {
+	n.pingList = append(n.pingList, basic)
+	i := len(n.pingList) - 1
+	j := rand.Intn(i + 1)
+	n.pingList[i], n.pingList[j] = n.pingList[j], n.pingList[i]
+}
+
+func (n *Node) handleEvalMember(basic *BasicRecord) {
+	addr := n.Address()
+	if basic.Address != addr {
+		if basic.Status != n.Members[basic.Address].Status {
+			n.Members[basic.Address].Status = basic.Status
+			n.Members[basic.Address].SendCount = 0
+		}
+	}
+}
+
+func (n *Node) handleUpdateMember(basic *BasicRecord) {
+	addr := n.Address()
+	if basic.Address != addr {
+		if _, exists := n.Members[basic.Address]; exists {
+			if basic.Address != addr {
+				n.Members[basic.Address].Status = basic.Status
+			}
+		} else {
+			n.addToPingList(basic)
+			rec := new(LocalRecord)
+			rec.BasicRecord = *basic
+			rec.SendCount = -1
+			n.Members[basic.Address] = rec
+		}
+	}
+}
+
+func (n *Node) handleAddMember(basic *BasicRecord) {
+	addr := n.Address()
+	if basic.Address != "" && basic.Address != addr {
+		n.addToPingList(basic)
+
+		rec := new(LocalRecord)
+		rec.BasicRecord = *basic
+		rec.SendCount = 0
+		n.Members[basic.Address] = rec
+	}
+}
+
+func (n *Node) handleFailMember(basic *BasicRecord) {
+	rec := new(LocalRecord)
+	rec.BasicRecord = *basic
+	rec.SendCount = 0
+	n.Members[basic.Address] = rec
+}
+
+func (n *Node) handleRequestMember(basic *BasicRecord) {
+	n.returnMember <- *n.NextPing()
+	n.pingIndex++
+}
+
 // Look at Node's channels and process
 // incoming requests.
 func (n *Node) keepNodeUpdated() {
 	var basic *BasicRecord
-	addr := n.Address()
-	pingIndex := 0
 	for {
 		select {
 		case basic = <-n.evalMember:
-			if basic.Address != addr {
-				if basic.Status != n.Members[basic.Address].Status {
-					n.Members[basic.Address].Status = basic.Status
-					n.Members[basic.Address].SendCount = 0
-				}
-			}
+			n.handleEvalMember(basic)
 		case basic = <-n.updateMember:
-			if basic.Address != addr {
-				if false {
-				} else {
-					rec := new(LocalRecord)
-					rec.BasicRecord = *basic
-					rec.SendCount = -1
-					n.Members[basic.Address] = rec
-				}
-			}
+			n.handleUpdateMember(basic)
 		case basic = <-n.addMember:
-			if basic.Address != "" && basic.Address != addr {
-				// flip recent one
-				n.pingList = append(n.pingList, basic)
-				i := len(n.pingList) - 1
-				j := rand.Intn(i + 1)
-				n.pingList[i], n.pingList[j] = n.pingList[j], n.pingList[i]
-
-				rec := new(LocalRecord)
-				rec.BasicRecord = *basic
-				rec.SendCount = 0
-				n.Members[basic.Address] = rec
-			}
+			n.handleAddMember(basic)
 		case basic = <-n.failMember:
-			rec := new(LocalRecord)
-			rec.BasicRecord = *basic
-			rec.SendCount = 0
-			n.Members[basic.Address] = rec
+			n.handleFailMember(basic)
 		case _ = <-n.requestMember:
-			n.returnMember <- *n.NextPing(pingIndex)
-			pingIndex++
+			n.handleRequestMember(basic)
 		}
 	}
 }
