@@ -3,7 +3,6 @@
 package dive
 
 import (
-	"fmt"
 	"os"
 	"os/exec"
 	"testing"
@@ -54,7 +53,6 @@ func NewCluster(size int) []*Node {
 	first := NewNode("")
 	nodes[0] = first
 	seed := first.Address()
-	fmt.Println("Seed:", seed)
 
 	time.Sleep(PingInterval)
 
@@ -68,7 +66,6 @@ func NewCluster(size int) []*Node {
 func TestBasicJoin(t *testing.T) {
 	nodes := NewCluster(ClusterSize)
 
-	fmt.Println("Waiting...")
 	time.Sleep(PingInterval * Propagation)
 
 	checkMembers(t, nodes)
@@ -81,7 +78,6 @@ func TestFailures(t *testing.T) {
 	checkMembers(t, nodes)
 
 	failed := nodes[4]
-	fmt.Println("Failed:", failed.Address())
 	failed.Kill()
 
 	time.Sleep(PingInterval * Propagation)
