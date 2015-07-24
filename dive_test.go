@@ -69,6 +69,12 @@ func NewCluster(size int) []*Node {
 	return nodes
 }
 
+// func TestAddMember(t *testing.T) {
+// 	node1 := NewNode("")
+// 	node2 := NewNode("")
+//
+// }
+
 func TestBasicJoin(t *testing.T) {
 	nodes := NewCluster(ClusterSize)
 
@@ -79,20 +85,15 @@ func TestBasicJoin(t *testing.T) {
 
 func TestFailures(t *testing.T) {
 	nodes := NewCluster(ClusterSize)
-
 	time.Sleep(PingInterval * Propagation)
 	checkMembers(t, nodes)
 
 	failed := nodes[4]
 	failed.Kill()
-
 	time.Sleep(PingInterval * Propagation)
-
 	checkFailure(t, nodes, failed)
 
-	failed.Revive()
-
-	time.Sleep(PingInterval * Propagation)
-
-	checkMembers(t, nodes)
+	// failed.Revive()
+	// time.Sleep(PingInterval * Propagation)
+	// checkMembers(t, nodes)
 }

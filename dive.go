@@ -129,6 +129,12 @@ func (n *Node) PickMembers() []*BasicRecord {
 	return outMembers
 }
 
+func LocalFromBasic(basic *BasicRecord) *LocalRecord {
+	rec := new(LocalRecord)
+	rec.BasicRecord = *basic
+	return rec
+}
+
 // Start pinging every heartbeat
 func (n *Node) heartbeat() {
 	for {
@@ -168,8 +174,7 @@ func (n *Node) handleUpdateMember(basic *BasicRecord) {
 			}
 		} else {
 			n.addToPingList(basic)
-			rec := new(LocalRecord)
-			rec.BasicRecord = *basic
+			rec := LocalFromBasic(basic)
 			rec.SendCount = -1
 			n.Members[basic.Address] = rec
 		}
@@ -180,19 +185,12 @@ func (n *Node) handleAddMember(basic *BasicRecord) {
 	addr := n.Address()
 	if basic.Address != "" && basic.Address != addr {
 		n.addToPingList(basic)
-
-		rec := new(LocalRecord)
-		rec.BasicRecord = *basic
-		rec.SendCount = 0
-		n.Members[basic.Address] = rec
+		n.Members[basic.Address] = LocalFromBasic(basic)
 	}
 }
 
 func (n *Node) handleFailMember(basic *BasicRecord) {
-	rec := new(LocalRecord)
-	rec.BasicRecord = *basic
-	rec.SendCount = 0
-	n.Members[basic.Address] = rec
+	n.Members[basic.Address] = LocalFromBasic(basic)
 }
 
 func (n *Node) handleRequestMember(basic *BasicRecord) {
