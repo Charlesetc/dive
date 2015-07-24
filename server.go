@@ -3,6 +3,7 @@
 package dive
 
 import (
+	"log"
 	"net"
 	"net/rpc"
 	"time"
@@ -74,29 +75,41 @@ func dial(address string) *rpc.Client {
 	return conn
 }
 
-func call(conn *rpc.Client, method string, args interface{}, reply interface{}) error {
-	err := conn.Call("Server.Ping", args, reply)
-	return err
+func call(address string, method string, o interface{}, r interface{}) chan bool {
+	conn := dial(address)
+	resp := make(chan bool)
+
+	go func() {
+		err := conn.Call("Server.Ping", o, r)
+		conn.Close()
+
+		if err != nil {
+			log.Println("Error", err)
+		}
+
+		resp <- true
+	}()
+
+	return resp
 }
 
 func (n *Node) Ping(address string) bool {
-	conn := dial(address)
-	defer conn.Close()
-
 	r := new(Reply)
 	o := new(Option)
 	o.Address = n.Address()
 	o.Nodes = n.PickMembers()
 
-	err := call(conn, "Server.Ping", o, r)
+	resp := call(address, "Server.Ping", o, r)
 
-	if err != nil {
-		panic(err)
+	select {
+	case <-resp:
+		for _, nodeRecord := range r.Nodes {
+			n.addMember <- nodeRecord
+		}
+
+		return true
+	case <-time.After(Timeout):
+		log.Println("Failed", n.Address(), address)
+		return false
 	}
-
-	for _, nodeRecord := range r.Nodes {
-		n.addMember <- nodeRecord
-	}
-
-	return r.Ack
 }

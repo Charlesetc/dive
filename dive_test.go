@@ -16,7 +16,7 @@ func init() {
 }
 
 const (
-	ClusterSize int           = 50
+	ClusterSize int           = 10
 	Propagation time.Duration = time.Duration(2 * ClusterSize)
 )
 

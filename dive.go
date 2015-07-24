@@ -11,6 +11,7 @@ import (
 
 const (
 	PingInterval time.Duration = time.Millisecond * 10
+	Timeout                    = PingInterval / 3
 )
 
 type Status int
