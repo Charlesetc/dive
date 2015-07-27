@@ -52,7 +52,7 @@ func (n *Node) Serve() {
 			}
 			go rpcs.ServeConn(conn)
 		} else {
-			time.Sleep(time.Millisecond * PingInterval)
+			time.Sleep(time.Nanosecond) //  PingInterval)
 		}
 	}
 }
@@ -67,8 +67,10 @@ func (s *Server) Ping(o *Option, r *Reply) error {
 	}
 
 	if _, exists := s.node.Members[address]; exists {
+		// change status to alive.
 		s.node.evalMember <- &BasicRecord{Address: address}
 	} else {
+		// add a new one.
 		s.node.addMember <- &BasicRecord{Address: address}
 	}
 
@@ -127,8 +129,9 @@ func (n *Node) Ping(other BasicRecord) {
 		for _, nodeRecord := range r.Nodes {
 			n.updateMember <- nodeRecord
 		}
-		n.evalMember <- &other
+		// n.evalMember <- &other
 	case <-time.After(Timeout):
+		// fmt.Println("TIMEOUT", other.Address)
 		other.Status = Failed
 		n.failMember <- &other
 	}

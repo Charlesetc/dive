@@ -3,21 +3,44 @@
 package dive
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"testing"
 	"time"
 )
 
+func printDots() {
+	fmt.Print(".")
+	time.Sleep(300 * time.Millisecond)
+	printDots()
+}
+
 func init() {
 	exec.Command("rm", "-r", "tmp").Output()
 	exec.Command("mkdir", "-p", "tmp").Output()
+	fmt.Print("Testing")
+	go printDots()
 }
 
 const (
 	ClusterSize int           = 10
-	Propagation time.Duration = time.Duration(2 * ClusterSize)
+	Propagation time.Duration = time.Duration(4 * ClusterSize)
 )
+
+func checkNotPing(t *testing.T, nodes []*Node) {
+	for _, node := range nodes {
+		for _, member := range node.Members {
+			if member.isSendable() {
+				t.Errorf("Member %s still pingin: %s", node.Address(), member.Address)
+			}
+
+		}
+		if len(node.PickMembers()) > 0 {
+			t.Errorf("Member %s is sending", node.Address())
+		}
+	}
+}
 
 func checkMembers(t *testing.T, nodes []*Node) {
 	for _, node := range nodes {
@@ -75,6 +98,12 @@ func NewCluster(size int) []*Node {
 //
 // }
 
+func printStatus(nodes []*Node) {
+	for _, n := range nodes {
+		fmt.Println("Alive: ", n.alive)
+	}
+}
+
 func TestBasicJoin(t *testing.T) {
 	nodes := NewCluster(ClusterSize)
 
@@ -90,10 +119,38 @@ func TestFailures(t *testing.T) {
 
 	failed := nodes[4]
 	failed.Kill()
-	time.Sleep(PingInterval * Propagation)
+	time.Sleep(PingInterval * Propagation * 2)
 	checkFailure(t, nodes, failed)
+	checkNotPing(t, nodes)
 
-	// failed.Revive()
-	// time.Sleep(PingInterval * Propagation)
-	// checkMembers(t, nodes)
+	failed.Revive()
+	time.Sleep(PingInterval * Propagation)
+	// printStatus(nodes)
+	checkMembers(t, nodes)
 }
+
+func TestReJoin(t *testing.T) {
+	nodes := NewCluster(ClusterSize)
+	time.Sleep(PingInterval * Propagation)
+	checkMembers(t, nodes)
+
+	node := NewNode(nodes[2].Address())
+	nodes = append(nodes, node)
+
+	time.Sleep(PingInterval * Propagation)
+	checkMembers(t, nodes)
+}
+
+func TestStopPing(t *testing.T) {
+	nodes := NewCluster(ClusterSize)
+
+	time.Sleep(PingInterval * Propagation)
+
+	checkNotPing(t, nodes)
+}
+
+//c TestTwoClusters(t *testing.T) {
+//odes1 := NewCluster(ClusterSize)
+//odes2 := NewCluster(ClusterSize)
+//odes1[0]
+//

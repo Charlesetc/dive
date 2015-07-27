@@ -4,7 +4,7 @@ package dive
 
 import (
 	"fmt"
-	"math"
+	// "math"
 	"math/rand"
 	"runtime"
 	"time"
@@ -18,6 +18,13 @@ const (
 )
 
 type Status int
+
+func (s Status) String() string {
+	if s == Alive {
+		return "Alive"
+	}
+	return "Dead"
+}
 
 const (
 	Alive Status = iota
@@ -84,17 +91,29 @@ func NewLocalRecord(address string) *LocalRecord {
 // Return next record in round-robin list
 // thread-safe
 func (n *Node) NextPing() *BasicRecord {
-	index := n.pingIndex
-	index = index % len(n.pingList)
-
-	if index == 0 {
-		for i := range n.pingList {
-			j := rand.Intn(i + 1)
-			n.pingList[i], n.pingList[j] = n.pingList[j], n.pingList[i]
+	// index := n.pingIndex
+	// index = index % len(n.pingList)
+	// if index == 0 {
+	// 	for i := range n.pingList {
+	// 		j := rand.Intn(i + 1)
+	// 		n.pingList[i], n.pingList[j] = n.pingList[j], n.pingList[i]
+	// 	}
+	// }
+	// return n.pingList[index]
+	// TODO:
+	i := rand.Intn(len(n.Members))
+	var record *LocalRecord
+	var j int
+	for _, record = range n.Members {
+		if i == j {
+			break
 		}
+		j++
 	}
-
-	return n.pingList[index]
+	if record.Status == Alive {
+		return &record.BasicRecord
+	}
+	return n.NextPing()
 }
 
 // Get the address of a node
@@ -112,13 +131,18 @@ func (n *Node) Revive() {
 	n.alive = true
 }
 
+func (b *LocalRecord) isSendable() bool {
+	return b.SendCount < 3
+}
+
 // Choose the records to send to other nodes
 // Only takes ones that haven't been sent
 // too many times before
 func (n *Node) PickMembers() []*BasicRecord {
 	outMembers := make([]*BasicRecord, 0)
 	for _, nodeRecord := range n.Members {
-		if float64(nodeRecord.SendCount) > math.Log(float64(len(n.Members))) {
+		// if float64(nodeRecord.SendCount) > math.Log(float64(len(n.Members))) {
+		if !nodeRecord.isSendable() {
 			continue
 		}
 
@@ -126,6 +150,14 @@ func (n *Node) PickMembers() []*BasicRecord {
 		outMembers = append(outMembers, &nodeRecord.BasicRecord)
 	}
 
+	// str := "["
+	// for _, m := range outMembers {
+	// 	str = str + " "
+	// 	str = str + m.Address
+	// 	str = str + " "
+	// 	str = str + m.Status.String()
+	// }
+	// fmt.Println(str, "]")
 	return outMembers
 }
 
@@ -143,7 +175,6 @@ func (n *Node) heartbeat() {
 			other := <-n.returnMember
 			go n.Ping(other)
 		}
-
 		time.Sleep(PingInterval)
 	}
 }
@@ -175,7 +206,8 @@ func (n *Node) handleUpdateMember(basic *BasicRecord) {
 		} else {
 			n.addToPingList(basic)
 			rec := LocalFromBasic(basic)
-			rec.SendCount = -1
+			rec.SendCount = 0
+			// rec.SendCount = -1
 			n.Members[basic.Address] = rec
 		}
 	}
