@@ -21,7 +21,7 @@ func init() {
 
 const (
 	ClusterSize int           = 10
-	Propagation time.Duration = time.Duration(4 * ClusterSize)
+	Propagation time.Duration = time.Duration(30 * ClusterSize)
 )
 
 func checkNotPing(t *testing.T, nodes []*Node) {
