@@ -40,6 +40,16 @@ func init() {
 	rand.Seed(time.Now().UnixNano())
 }
 
+func GetAliveFromMap(records map[string]*LocalRecord) []*LocalRecord {
+	output_list := make([]*LocalRecord, 0)
+	for _, rec := range records {
+		if rec.Status == Alive {
+			output_list = append(output_list, rec)
+		}
+	}
+	return output_list
+}
+
 // The internal structure for a node
 // holds and seperates channels, addresses,
 // and current members. Useful for testing.
@@ -65,6 +75,10 @@ type Node struct {
 	pingList  []*BasicRecord
 	pingIndex int
 	alive     bool
+}
+
+func (n *Node) AddMember() chan *BasicRecord {
+	return n.addMember
 }
 
 // Record passed to other nodes
