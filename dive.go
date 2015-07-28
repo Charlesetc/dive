@@ -91,29 +91,34 @@ func NewLocalRecord(address string) *LocalRecord {
 // Return next record in round-robin list
 // thread-safe
 func (n *Node) NextPing() *BasicRecord {
-	// index := n.pingIndex
-	// index = index % len(n.pingList)
-	// if index == 0 {
-	// 	for i := range n.pingList {
-	// 		j := rand.Intn(i + 1)
-	// 		n.pingList[i], n.pingList[j] = n.pingList[j], n.pingList[i]
-	// 	}
-	// }
-	// return n.pingList[index]
-	// TODO:
-	i := rand.Intn(len(n.Members))
-	var record *LocalRecord
-	var j int
-	for _, record = range n.Members {
-		if i == j {
-			break
+	index := n.pingIndex
+	index = index % len(n.pingList)
+	if index == 0 {
+		for i := range n.pingList {
+			j := rand.Intn(i + 1)
+			n.pingList[i], n.pingList[j] = n.pingList[j], n.pingList[i]
 		}
-		j++
 	}
-	if record.Status == Alive {
-		return &record.BasicRecord
+
+	if n.pingList[index].Status != Alive {
+		n.pingList = append(n.pingList[:index], n.pingList[index+1:]...)
+		return n.NextPing()
 	}
-	return n.NextPing()
+	return n.pingList[index]
+
+	// i := rand.Intn(len(n.Members))
+	// var record *LocalRecord
+	// var j int
+	// for _, record = range n.Members {
+	// 	if i == j {
+	// 		break
+	// 	}
+	// 	j++
+	// }
+	// if record.Status == Alive {
+	// 	return &record.BasicRecord
+	// }
+	// return n.NextPing()
 }
 
 // Get the address of a node
