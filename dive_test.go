@@ -4,8 +4,6 @@ package dive
 
 import (
 	"fmt"
-	"os"
-	"os/exec"
 	"testing"
 	"time"
 )
@@ -17,8 +15,6 @@ func printDots() {
 }
 
 func init() {
-	exec.Command("rm", "-r", "tmp").Output()
-	exec.Command("mkdir", "-p", "tmp").Output()
 	fmt.Print("Testing")
 	go printDots()
 }
@@ -70,33 +66,25 @@ func checkFailure(t *testing.T, nodes []*Node, failed *Node) {
 	}
 }
 
-func destroyCluster(nodes []*Node) {
-	for _, node := range nodes {
-		os.Remove(node.Address())
-	}
-}
+var port int = 3000
 
 func NewCluster(size int) []*Node {
 	nodes := make([]*Node, ClusterSize)
 
-	first := NewNode("")
+	first := NewNode(port, "")
+	port++
 	nodes[0] = first
 	seed := first.Address()
 
 	time.Sleep(PingInterval)
 
 	for i := 1; i < ClusterSize; i++ {
-		nodes[i] = NewNode(seed)
+		nodes[i] = NewNode(port, seed)
+		port++
 	}
 
 	return nodes
 }
-
-// func TestAddMember(t *testing.T) {
-// 	node1 := NewNode("")
-// 	node2 := NewNode("")
-//
-// }
 
 func printStatus(nodes []*Node) {
 	for _, n := range nodes {
@@ -125,19 +113,6 @@ func TestFailures(t *testing.T) {
 
 	failed.Revive()
 	time.Sleep(PingInterval * Propagation)
-	// printStatus(nodes)
-	checkMembers(t, nodes)
-}
-
-func TestReJoin(t *testing.T) {
-	nodes := NewCluster(ClusterSize)
-	time.Sleep(PingInterval * Propagation)
-	checkMembers(t, nodes)
-
-	node := NewNode(nodes[2].Address())
-	nodes = append(nodes, node)
-
-	time.Sleep(PingInterval * Propagation)
 	checkMembers(t, nodes)
 }
 
@@ -148,9 +123,3 @@ func TestStopPing(t *testing.T) {
 
 	checkNotPing(t, nodes)
 }
-
-//c TestTwoClusters(t *testing.T) {
-//odes1 := NewCluster(ClusterSize)
-//odes2 := NewCluster(ClusterSize)
-//odes1[0]
-//
