@@ -38,7 +38,7 @@ func (n *Node) Serve() {
 	s := &Server{node: n}
 	rpcs.Register(s)
 
-	l, err := net.Listen("unix", n.Address())
+	l, err := net.Listen("tcp", n.Address())
 
 	if err != nil {
 		panic(err)
@@ -82,7 +82,7 @@ func (s *Server) Ping(o *Option, r *Reply) error {
 // Client
 
 func dial(address string) *rpc.Client {
-	conn, err := rpc.Dial("unix", address)
+	conn, err := rpc.Dial("tcp", address)
 
 	if err != nil {
 		panic(err)
