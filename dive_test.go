@@ -10,7 +10,7 @@ import (
 
 func printDots() {
 	fmt.Print(".")
-	time.Sleep(300 * time.Millisecond)
+	time.Sleep(60 * time.Millisecond)
 	printDots()
 }
 
@@ -21,7 +21,7 @@ func init() {
 
 const (
 	ClusterSize int           = 10
-	Propagation time.Duration = time.Duration(30 * ClusterSize)
+	Propagation time.Duration = time.Duration(2 * ClusterSize)
 )
 
 func checkNotPing(t *testing.T, nodes []*Node) {

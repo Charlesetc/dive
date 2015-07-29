@@ -12,7 +12,7 @@ import (
 
 const (
 	// Time between Pings
-	PingInterval time.Duration = time.Millisecond * 100
+	PingInterval time.Duration = time.Millisecond * 60
 	// Time it takes for a ping to fail
 	Timeout = PingInterval / 3
 )
@@ -118,7 +118,7 @@ func (n *Node) setUpNextPing() func() *BasicRecord {
 	i := 0
 	return func() *BasicRecord {
 		if i == len(arr) {
-			arr := GetAliveFromMap(n.Members)
+			arr = GetAliveFromMap(n.Members)
 			shuffleLocal(arr)
 			i = 0
 		}
