@@ -88,13 +88,28 @@ func (s *Server) Ping(o *Option, r *Reply) error {
 // Client
 
 func dial(address string) *rpc.Client {
-	conn, err := rpc.Dial("tcp", address)
+	var err error
+	var conn *rpc.Client
+	success := make(chan *rpc.Client)
 
-	if err != nil {
+	go func() {
+		conn, err = rpc.Dial("tcp", address)
+
+		for err != nil {
+			conn, err = rpc.Dial("tcp", address)
+			time.Sleep(PingInterval / 3)
+		}
+
+		success <- conn
+	}()
+
+	select {
+	case conn := <-success:
+		return conn
+	case <-time.After(PingInterval):
 		panic(err)
+		return nil
 	}
-
-	return conn
 }
 
 // Useful function for calling any method on
