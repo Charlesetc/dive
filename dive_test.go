@@ -71,15 +71,14 @@ var port int = 3000
 func NewCluster(size int) []*Node {
 	nodes := make([]*Node, ClusterSize)
 
-	first := NewNode(port, "")
+	first := NewNode(port, &BasicRecord{Address: ""})
 	port++
 	nodes[0] = first
-	seed := first.Address()
 
 	time.Sleep(PingInterval)
 
 	for i := 1; i < ClusterSize; i++ {
-		nodes[i] = NewNode(port, seed)
+		nodes[i] = NewNode(port, &BasicRecord{Address: first.Address()})
 		port++
 	}
 
