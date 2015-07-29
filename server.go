@@ -135,7 +135,7 @@ func (n *Node) Ping(other BasicRecord) {
 		for _, nodeRecord := range r.Nodes {
 			n.updateMember <- nodeRecord
 		}
-	case <-time.After(Timeout):
+	case <-time.After(PingInterval / 3):
 		// fmt.Println("TIMEOUT", other.Address)
 		other.Status = Failed
 		n.failMember <- &other
