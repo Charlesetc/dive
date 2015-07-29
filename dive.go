@@ -12,8 +12,6 @@ import (
 var (
 	// Time between Pings
 	PingInterval time.Duration = time.Millisecond * 100
-	// Time it takes for a ping to fail
-	Timeout = PingInterval / 3
 )
 
 type Status int
