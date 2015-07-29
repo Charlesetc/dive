@@ -116,7 +116,8 @@ func shuffleLocal(a []*LocalRecord) {
 func (n *Node) setUpNextPing() func() *BasicRecord {
 	arr := []*LocalRecord{}
 	i := 0
-	return func() *BasicRecord {
+	var f func() *BasicRecord
+	f = func() *BasicRecord {
 		if i == len(arr) {
 			arr = GetAliveFromMap(n.Members)
 			shuffleLocal(arr)
@@ -125,10 +126,16 @@ func (n *Node) setUpNextPing() func() *BasicRecord {
 		if len(arr) == 0 {
 			fmt.Println("Why?")
 		}
+
 		out := arr[i]
+		if out.Status == Failed {
+			i++
+			return f()
+		}
 		i++
 		return &out.BasicRecord
 	}
+	return f
 }
 
 // Get the address of a node
