@@ -19,8 +19,9 @@ type Server struct {
 // what server.ping takes
 // what node.ping gives
 type Option struct {
-	Address string
-	Nodes   []*BasicRecord
+	Address  string
+	Nodes    []*BasicRecord
+	MetaData interface{}
 }
 
 // The ouput to an rpc service.
@@ -68,10 +69,10 @@ func (s *Server) Ping(o *Option, r *Reply) error {
 
 	if _, exists := s.node.Members[address]; exists {
 		// change status to alive.
-		s.node.evalMember <- &BasicRecord{Address: address}
+		s.node.evalMember <- &BasicRecord{Address: address, MetaData: o.MetaData}
 	} else {
 		// add a new one.
-		s.node.addMember <- &BasicRecord{Address: address}
+		s.node.addMember <- &BasicRecord{Address: address, MetaData: o.MetaData}
 	}
 
 	r.Ack = true
@@ -140,6 +141,7 @@ func (n *Node) Ping(other BasicRecord) {
 	r := new(Reply)
 	o := new(Option)
 	o.Address = n.Address()
+	o.MetaData = n.MetaData
 	o.Nodes = n.PickMembers()
 
 	resp := call(address, "Server.Ping", o, r)

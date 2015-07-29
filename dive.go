@@ -57,6 +57,9 @@ type Node struct {
 	// Id used to generate address, as of now.
 	Id int
 
+	// Arbitrary information sent over gossip protocol - e.g. load information
+	MetaData interface{}
+
 	// Channels for thread-safety
 	evalMember   chan *BasicRecord
 	addMember    chan *BasicRecord
@@ -82,7 +85,8 @@ func (n *Node) AddMember() chan *BasicRecord {
 // Record passed to other nodes
 type BasicRecord struct {
 	Status
-	Address string
+	Address  string
+	MetaData interface{}
 }
 
 // Record kept locally
@@ -218,7 +222,6 @@ func (n *Node) handleUpdateMember(basic *BasicRecord) {
 		} else {
 			rec := LocalFromBasic(basic)
 			rec.SendCount = 0
-			// rec.SendCount = -1
 			n.Members[basic.Address] = rec
 		}
 	}
@@ -263,7 +266,7 @@ func (n *Node) keepNodeUpdated() {
 // if seedAddress is empty,
 // it's the seed node and the address
 // is ignored
-func NewNode(id int, seedAddress string) *Node {
+func NewNode(id int, seed *BasicRecord) *Node {
 	node := &Node{
 		Members:       make(map[string]*LocalRecord),
 		Id:            id,
@@ -276,7 +279,7 @@ func NewNode(id int, seedAddress string) *Node {
 		returnMember:  make(chan BasicRecord, 1),
 	}
 
-	node.addMember <- &BasicRecord{Address: seedAddress}
+	node.addMember <- seed
 	node.NextPing = node.setUpNextPing()
 
 	go node.keepNodeUpdated()
