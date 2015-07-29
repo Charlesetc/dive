@@ -71,10 +71,11 @@ type Node struct {
 	// Used to return the next ping safely
 	returnMember chan BasicRecord
 
+	// Used to call
+	NextPing func() *BasicRecord
+
 	// This is for round-robin pinging
-	pingList  []*BasicRecord
-	pingIndex int
-	alive     bool
+	alive bool
 }
 
 func (n *Node) AddMember() chan *BasicRecord {
@@ -102,32 +103,32 @@ func NewLocalRecord(address string) *LocalRecord {
 	return &LocalRecord{BasicRecord: BasicRecord{Address: address}}
 }
 
+// copied from the interwebs
+func shuffleLocal(a []*LocalRecord) {
+	for i := range a {
+		j := rand.Intn(i + 1)
+		a[i], a[j] = a[j], a[i]
+	}
+}
+
 // Return next record in round-robin list
 // thread-safe
-func (n *Node) NextPing() *BasicRecord {
-	// index := n.pingIndex
-	// index = index % len(n.pingList)
-	// if index == 0 {
-	// 	for i := range n.pingList {
-	// 		j := rand.Intn(i + 1)
-	// 		n.pingList[i], n.pingList[j] = n.pingList[j], n.pingList[i]
-	// 	}
-	// }
-	// return n.pingList[index]
-	// TODO:
-	i := rand.Intn(len(n.Members))
-	var record *LocalRecord
-	var j int
-	for _, record = range n.Members {
-		if i == j {
-			break
+func (n *Node) setUpNextPing() func() *BasicRecord {
+	arr := []*LocalRecord{}
+	i := 0
+	return func() *BasicRecord {
+		if i == len(arr) {
+			arr := GetAliveFromMap(n.Members)
+			shuffleLocal(arr)
+			i = 0
 		}
-		j++
+		if len(arr) == 0 {
+			fmt.Println("Why?")
+		}
+		out := arr[i]
+		i++
+		return &out.BasicRecord
 	}
-	if record.Status == Alive {
-		return &record.BasicRecord
-	}
-	return n.NextPing()
 }
 
 // Get the address of a node
@@ -184,20 +185,13 @@ func LocalFromBasic(basic *BasicRecord) *LocalRecord {
 // Start pinging every heartbeat
 func (n *Node) heartbeat() {
 	for {
-		if n.alive && len(n.Members) > 0 {
+		if n.alive && len(GetAliveFromMap(n.Members)) > 0 {
 			n.requestMember <- true
 			other := <-n.returnMember
 			go n.Ping(other)
 		}
 		time.Sleep(PingInterval)
 	}
-}
-
-func (n *Node) addToPingList(basic *BasicRecord) {
-	n.pingList = append(n.pingList, basic)
-	i := len(n.pingList) - 1
-	j := rand.Intn(i + 1)
-	n.pingList[i], n.pingList[j] = n.pingList[j], n.pingList[i]
 }
 
 func (n *Node) handleEvalMember(basic *BasicRecord) {
@@ -218,7 +212,6 @@ func (n *Node) handleUpdateMember(basic *BasicRecord) {
 				n.Members[basic.Address].Status = basic.Status
 			}
 		} else {
-			n.addToPingList(basic)
 			rec := LocalFromBasic(basic)
 			rec.SendCount = 0
 			// rec.SendCount = -1
@@ -230,7 +223,6 @@ func (n *Node) handleUpdateMember(basic *BasicRecord) {
 func (n *Node) handleAddMember(basic *BasicRecord) {
 	addr := n.Address()
 	if basic.Address != "" && basic.Address != addr {
-		n.addToPingList(basic)
 		n.Members[basic.Address] = LocalFromBasic(basic)
 	}
 }
@@ -241,7 +233,6 @@ func (n *Node) handleFailMember(basic *BasicRecord) {
 
 func (n *Node) handleRequestMember(basic *BasicRecord) {
 	n.returnMember <- *n.NextPing()
-	n.pingIndex++
 }
 
 // Look at Node's channels and process
@@ -277,12 +268,12 @@ func NewNode(id int, seedAddress string) *Node {
 		addMember:     make(chan *BasicRecord, 1), // buffering?
 		failMember:    make(chan *BasicRecord, 1),
 		updateMember:  make(chan *BasicRecord, 1),
-		pingList:      make([]*BasicRecord, 0),
 		requestMember: make(chan bool, 1),
 		returnMember:  make(chan BasicRecord, 1),
 	}
 
 	node.addMember <- &BasicRecord{Address: seedAddress}
+	node.NextPing = node.setUpNextPing()
 
 	go node.keepNodeUpdated()
 	go node.Serve()
