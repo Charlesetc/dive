@@ -4,13 +4,12 @@ package dive
 
 import (
 	"fmt"
-	// "math"
 	"math/rand"
 	"runtime"
 	"time"
 )
 
-const (
+var (
 	// Time between Pings
 	PingInterval time.Duration = time.Millisecond * 60
 	// Time it takes for a ping to fail

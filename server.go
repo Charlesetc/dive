@@ -75,6 +75,12 @@ func (s *Server) Ping(o *Option, r *Reply) error {
 	}
 
 	r.Ack = true
+
+	// PickMembers calls requestMember <-
+	// so it is syncroneously after
+	// the updateMember above.
+	// so conflicting messages shouldn't
+	// be an issue. Yay!
 	r.Nodes = s.node.PickMembers()
 	return nil
 }
