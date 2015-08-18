@@ -15,6 +15,7 @@ var (
 )
 
 type Status int
+type EventType int
 
 func (s Status) String() string {
 	if s == Alive {
@@ -29,22 +30,15 @@ const (
 	Failed
 )
 
-func init() {
-	// Run on as many cores as possible
-	runtime.GOMAXPROCS(runtime.NumCPU())
+const (
+	Join EventType = iota
+	Fail
+)
 
-	// Be random each time
-	rand.Seed(time.Now().UnixNano())
-}
-
-func GetAliveFromMap(records map[string]*LocalRecord) []*LocalRecord {
-	output_list := make([]*LocalRecord, 0)
-	for _, rec := range records {
-		if rec.Status == Alive {
-			output_list = append(output_list, rec)
-		}
-	}
-	return output_list
+type Event struct {
+	Kind     EventType
+	Address  string
+	MetaData interface{}
 }
 
 // The internal structure for a node
@@ -65,6 +59,8 @@ type Node struct {
 	addMember    chan *BasicRecord
 	updateMember chan *BasicRecord
 	failMember   chan *BasicRecord
+	// Exported chan for handling them outside.
+	Events chan *Event
 
 	// Used to request the next ping safely
 	requestMember chan bool
@@ -82,11 +78,25 @@ func (n *Node) AddMember() chan *BasicRecord {
 	return n.addMember
 }
 
+func GetAliveFromMap(records map[string]*LocalRecord) []*LocalRecord {
+	output_list := make([]*LocalRecord, 0)
+	for _, rec := range records {
+		if rec.Status == Alive {
+			output_list = append(output_list, rec)
+		}
+	}
+	return output_list
+}
+
 // Record passed to other nodes
 type BasicRecord struct {
 	Status
 	Address  string
 	MetaData interface{}
+}
+
+func (basic *BasicRecord) toEvent(kind EventType) *Event {
+	return &Event{kind, basic.Address, basic.MetaData}
 }
 
 // Record kept locally
@@ -97,6 +107,14 @@ type LocalRecord struct {
 	// count   int
 	BasicRecord
 	SendCount int
+}
+
+func init() {
+	// Run on as many cores as possible
+	runtime.GOMAXPROCS(runtime.NumCPU())
+
+	// Be random each time
+	rand.Seed(time.Now().UnixNano())
 }
 
 // Constructor for Local Record
@@ -231,11 +249,17 @@ func (n *Node) handleAddMember(basic *BasicRecord) {
 	addr := n.Address()
 	if basic.Address != "" && basic.Address != addr {
 		n.Members[basic.Address] = LocalFromBasic(basic)
+		if n.Events != nil {
+			n.Events <- basic.toEvent(Join)
+		}
 	}
 }
 
 func (n *Node) handleFailMember(basic *BasicRecord) {
 	n.Members[basic.Address] = LocalFromBasic(basic)
+	if n.Events != nil {
+		n.Events <- basic.toEvent(Fail)
+	}
 }
 
 func (n *Node) handleRequestMember(basic *BasicRecord) {
@@ -266,7 +290,7 @@ func (n *Node) keepNodeUpdated() {
 // if seedAddress is empty,
 // it's the seed node and the address
 // is ignored
-func NewNode(id int, seed *BasicRecord) *Node {
+func NewNode(id int, seed *BasicRecord, events chan *Event) *Node {
 	node := &Node{
 		Members:       make(map[string]*LocalRecord),
 		Id:            id,
@@ -277,6 +301,7 @@ func NewNode(id int, seed *BasicRecord) *Node {
 		updateMember:  make(chan *BasicRecord, 1),
 		requestMember: make(chan bool, 1),
 		returnMember:  make(chan BasicRecord, 1),
+		Events:        events,
 	}
 
 	node.addMember <- seed
