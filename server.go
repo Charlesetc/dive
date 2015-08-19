@@ -153,7 +153,6 @@ func (n *Node) Ping(other BasicRecord) {
 			n.updateMember <- nodeRecord
 		}
 	case <-time.After(PingInterval / 3):
-		// fmt.Println("TIMEOUT", other.Address)
 		other.Status = Failed
 		n.failMember <- &other
 	}

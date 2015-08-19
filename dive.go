@@ -10,7 +10,6 @@ import (
 )
 
 var (
-	// Time between Pings
 	PingInterval time.Duration = time.Millisecond * 60
 )
 
@@ -48,8 +47,8 @@ type Node struct {
 
 	// A map from addresses to their LocalRecords
 	Members map[string]*LocalRecord
-	// Id used to generate address, as of now.
-	Id int
+	Host    string
+	Port    int
 
 	// Arbitrary information sent over gossip protocol - e.g. load information
 	MetaData interface{}
@@ -159,7 +158,7 @@ func (n *Node) setUpNextPing() func() *BasicRecord {
 
 // Get the address of a node
 func (n *Node) Address() string {
-	return fmt.Sprintf(":%d", n.Id)
+	return fmt.Sprintf("%s:%d", n.Host, n.Port)
 }
 
 // Artificially kill a node
@@ -290,10 +289,11 @@ func (n *Node) keepNodeUpdated() {
 // if seedAddress is empty,
 // it's the seed node and the address
 // is ignored
-func NewNode(id int, seed *BasicRecord, events chan *Event) *Node {
+func NewNode(host string, port int, seed *BasicRecord, events chan *Event) *Node {
 	node := &Node{
 		Members:       make(map[string]*LocalRecord),
-		Id:            id,
+		Host:          host,
+		Port:          port,
 		alive:         true,
 		evalMember:    make(chan *BasicRecord, 1), // buffering?
 		addMember:     make(chan *BasicRecord, 1), // buffering?

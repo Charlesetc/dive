@@ -47,7 +47,7 @@ func checkMembers(t *testing.T, nodes []*Node) {
 		}
 
 		if len(node.Members) != len(nodes)-1 {
-			t.Errorf("Node %d thinks there are %d node(s)!", node.Id, len(node.Members))
+			t.Errorf("Node %s thinks there are %d nodes!", node.Address(), len(node.Members))
 		}
 	}
 }
@@ -71,14 +71,14 @@ var port int = 3000
 func NewCluster(size int) []*Node {
 	nodes := make([]*Node, ClusterSize)
 
-	first := NewNode(port, &BasicRecord{Address: ""}, nil)
+	first := NewNode("localhost", port, &BasicRecord{Address: ""}, nil)
 	port++
 	nodes[0] = first
 
 	time.Sleep(PingInterval)
 
 	for i := 1; i < ClusterSize; i++ {
-		nodes[i] = NewNode(port, &BasicRecord{Address: first.Address()}, nil)
+		nodes[i] = NewNode("localhost", port, &BasicRecord{Address: first.Address()}, nil)
 		port++
 	}
 
