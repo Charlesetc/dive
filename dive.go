@@ -95,7 +95,7 @@ type BasicRecord struct {
 }
 
 func (basic *BasicRecord) toEvent(kind EventType) *Event {
-	return &Event{kind, basic.Address, basic.MetaData}
+	return &Event{kind, basic.MetaData}
 }
 
 // Record kept locally
