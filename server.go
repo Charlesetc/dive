@@ -88,7 +88,7 @@ func (s *Server) Ping(o *Option, r *Reply) error {
 
 // Client
 
-func dial(address string) *rpc.Client {
+func dial(address string) (*rpc.Client, error) {
 	var err error
 	var conn *rpc.Client
 	success := make(chan *rpc.Client)
@@ -106,17 +106,19 @@ func dial(address string) *rpc.Client {
 
 	select {
 	case conn := <-success:
-		return conn
+		return conn, nil
 	case <-time.After(PingInterval):
-		panic(err)
-		return nil
+		return nil, err
 	}
 }
 
 // Useful function for calling any method on
 // a remote receiver
 func call(address string, method string, o interface{}, r interface{}) chan bool {
-	conn := dial(address)
+	conn, err := dial(address)
+	if err != nil {
+		return nil // will wait until the timeout
+	}
 	resp := make(chan bool)
 
 	go func() {

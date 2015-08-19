@@ -35,9 +35,8 @@ const (
 )
 
 type Event struct {
-	Kind     EventType
-	Address  string
-	MetaData interface{}
+	Kind EventType
+	Data interface{}
 }
 
 // The internal structure for a node
@@ -95,7 +94,7 @@ type BasicRecord struct {
 }
 
 func (basic *BasicRecord) toEvent(kind EventType) *Event {
-	return &Event{kind, basic.Address, basic.MetaData}
+	return &Event{kind, basic.MetaData}
 }
 
 // Record kept locally
@@ -240,6 +239,9 @@ func (n *Node) handleUpdateMember(basic *BasicRecord) {
 			rec := LocalFromBasic(basic)
 			rec.SendCount = 0
 			n.Members[basic.Address] = rec
+			if n.Events != nil {
+				n.Events <- basic.toEvent(Join)
+			}
 		}
 	}
 }
