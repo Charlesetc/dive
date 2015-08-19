@@ -240,7 +240,9 @@ func (n *Node) handleUpdateMember(basic *BasicRecord) {
 			rec := LocalFromBasic(basic)
 			rec.SendCount = 0
 			n.Members[basic.Address] = rec
-			n.Events <- basic.toEvent(Join)
+			if n.Events != nil {
+				n.Events <- basic.toEvent(Join)
+			}
 		}
 	}
 }
