@@ -36,9 +36,8 @@ const (
 )
 
 type Event struct {
-	Kind     EventType
-	Address  string
-	MetaData interface{}
+	Kind EventType
+	Data interface{}
 }
 
 // The internal structure for a node
