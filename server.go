@@ -72,6 +72,7 @@ func (s *Server) Ping(o *Option, r *Reply) error {
 		s.node.evalMember <- &BasicRecord{Address: address, MetaData: o.MetaData}
 	} else {
 		// add a new one.
+		// this is continually being called.
 		s.node.addMember <- &BasicRecord{Address: address, MetaData: o.MetaData}
 	}
 

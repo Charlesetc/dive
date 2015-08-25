@@ -222,7 +222,13 @@ func (n *Node) handleEvalMember(basic *BasicRecord) {
 	addr := n.Address()
 	if basic.Address != addr {
 		if basic.Status != n.Members[basic.Address].Status {
-			n.Members[basic.Address].Status = basic.Status
+			member := n.Members[basic.Address]
+			if member.Status == Failed && basic.Status == Alive {
+				if n.Events != nil {
+					n.Events <- basic.toEvent(Join)
+				}
+			}
+			member.Status = basic.Status
 			n.Members[basic.Address].SendCount = 0
 		}
 	}
@@ -233,7 +239,9 @@ func (n *Node) handleUpdateMember(basic *BasicRecord) {
 	if basic.Address != addr {
 		if _, exists := n.Members[basic.Address]; exists {
 			if basic.Address != addr {
-				n.Members[basic.Address].Status = basic.Status
+				member := n.Members[basic.Address]
+				// Change the status
+				member.Status = basic.Status
 			}
 		} else {
 			rec := LocalFromBasic(basic)
