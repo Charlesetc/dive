@@ -4,6 +4,7 @@ package dive
 
 import (
 	"fmt"
+	"log"
 	"math/rand"
 	"runtime"
 	"time"
@@ -180,7 +181,6 @@ func (b *LocalRecord) isSendable() bool {
 func (n *Node) PickMembers() []*BasicRecord {
 	outMembers := make([]*BasicRecord, 0)
 	for _, nodeRecord := range n.Members {
-		// if float64(nodeRecord.SendCount) > math.Log(float64(len(n.Members))) {
 		if !nodeRecord.isSendable() {
 			continue
 		}
@@ -188,15 +188,6 @@ func (n *Node) PickMembers() []*BasicRecord {
 		nodeRecord.SendCount++
 		outMembers = append(outMembers, &nodeRecord.BasicRecord)
 	}
-
-	// str := "["
-	// for _, m := range outMembers {
-	// 	str = str + " "
-	// 	str = str + m.Address
-	// 	str = str + " "
-	// 	str = str + m.Status.String()
-	// }
-	// fmt.Println(str, "]")
 	return outMembers
 }
 
@@ -299,7 +290,9 @@ func (n *Node) keepNodeUpdated() {
 // if seedAddress is empty,
 // it's the seed node and the address
 // is ignored
-func NewNode(host string, port int, seed *BasicRecord, events chan *Event) *Node {
+func NewNode(host string, port int, seed *BasicRecord) *Node {
+	events := make(chan *Event)
+
 	node := &Node{
 		Members:       make(map[string]*LocalRecord),
 		Host:          host,
@@ -313,6 +306,8 @@ func NewNode(host string, port int, seed *BasicRecord, events chan *Event) *Node
 		returnMember:  make(chan BasicRecord, 1),
 		Events:        events,
 	}
+
+	log.Println("Starting new dive server", node.Address())
 
 	node.addMember <- seed
 	node.NextPing = node.setUpNextPing()
