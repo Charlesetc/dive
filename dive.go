@@ -4,7 +4,6 @@ package dive
 
 import (
 	"fmt"
-	"log"
 	"math/rand"
 	"runtime"
 	"time"
@@ -306,8 +305,6 @@ func NewNode(host string, port int, seed *BasicRecord) *Node {
 		returnMember:  make(chan BasicRecord, 1),
 		Events:        events,
 	}
-
-	log.Println("Starting new dive server", node.Address())
 
 	node.addMember <- seed
 	node.NextPing = node.setUpNextPing()
