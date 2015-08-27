@@ -289,9 +289,7 @@ func (n *Node) keepNodeUpdated() {
 // if seedAddress is empty,
 // it's the seed node and the address
 // is ignored
-func NewNode(host string, port int, seed *BasicRecord) *Node {
-	events := make(chan *Event)
-
+func NewNode(host string, port int, seed *BasicRecord, events chan *Event) *Node {
 	node := &Node{
 		Members:       make(map[string]*LocalRecord),
 		Host:          host,
